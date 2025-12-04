@@ -19,7 +19,7 @@ setuptools.setup(
         package_dir={'': 'src'},
         packages=setuptools.find_packages(where='src'),
         install_requires=requirements,
-        python_requires='>=3.9',
+        python_requires='>=3.11',
         entry_points={
             'console_scripts': [
                 'onsdriver-firsttime=onsdriver.firsttime:main',
