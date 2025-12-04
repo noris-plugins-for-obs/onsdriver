@@ -17,7 +17,7 @@ def _extract(pkg_path, destination):
         with zipfile.ZipFile(pkg_path) as z:
             z.extractall(destination)
     elif pkg_path.endswith('.dmg') and sys.platform == 'darwin':
-        import dmglib # pylint: disable=import-outside-toplevel
+        import dmglib # pylint: disable=import-outside-toplevel,import-error
         with dmglib.attachedDiskImage(pkg_path) as mount_points:
             shutil.copytree(mount_points[0], destination, symlinks=True)
     else:
