@@ -18,6 +18,7 @@ _WAIVED_ERRORS_RE_LIST = (
     r'error: glBindFramebuffer failed, glGetError returned GL_INVALID_OPERATION', # random
     r'error: \[mac-virtualcam\] mac-camera-extension: OSSystemExtensionErrorCode 2',
     r'error: os_dlopen.*VLC.app',
+    r'error: Crash sentinel location .* unable to create directory', # first time on Windows
 )
 
 _WAIVED_ERRORS_RE = re.compile('(' + '|'.join(_WAIVED_ERRORS_RE_LIST) + ')')
@@ -101,7 +102,7 @@ class OBSExec:
                 cmd = ['xvfb-run', '-s', '-screen 0 1080x768x24'] + cmd
         elif sys.platform == 'win32':
             proc_cwd = os.path.dirname(self.exec_path)
-            cmd = [os.path.basename(self.exec_path)]
+            cmd = [os.path.abspath(self.exec_path)]
         else:
             proc_cwd = None
             cmd = [self.exec_path]
