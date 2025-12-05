@@ -4,6 +4,7 @@ This module provides a functionality to execute obs-studio.
 
 import os
 import os.path
+import re
 import sys
 import subprocess
 import tempfile
@@ -11,13 +12,15 @@ import time
 import obsws_python
 from onsdriver import obsconfig, obsui
 
-_WAIVED_ERRORS = (
-    'error: Failed to rename basic scene collection file:', # first time
-    'error: Tried to call obs_frontend_remove_event_callback with no callbacks!', # obs-websocket
-    'error: glBindFramebuffer failed, glGetError returned GL_INVALID_OPERATION(0x502)', # random
-    'error: [mac-virtualcam] mac-camera-extension: OSSystemExtensionErrorCode 2 '
-    '("Missing entitlement com.apple.developer.system-extension.install")',
+_WAIVED_ERRORS_RE_LIST = (
+    r'error: Failed to rename basic scene collection file:', # first time
+    r'error: Tried to call obs_frontend_remove_event_callback with no callbacks!', # obs-websocket
+    r'error: glBindFramebuffer failed, glGetError returned GL_INVALID_OPERATION', # random
+    r'error: \[mac-virtualcam\] mac-camera-extension: OSSystemExtensionErrorCode 2',
+    r'error: os_dlopen.*VLC.app',
 )
+
+_WAIVED_ERRORS_RE = re.compile('(' + '|'.join(_WAIVED_ERRORS_RE_LIST) + ')')
 
 def _normalize_exec_path(path):
     if sys.platform == 'darwin':
@@ -233,7 +236,7 @@ class OBSExec:
             self._tmp_stderr.seek(0)
             has_error = False
             for line in self._tmp_stderr.read().decode('utf-8').split('\n'):
-                if line in _WAIVED_ERRORS:
+                if _WAIVED_ERRORS_RE.match(line):
                     continue
                 if line.startswith('error: '):
                     has_error = True
