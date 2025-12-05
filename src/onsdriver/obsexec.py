@@ -94,7 +94,12 @@ class OBSExec:
 
         self.config.remove_logs()
 
-        if sys.platform == 'win32':
+        if sys.platform == 'linux':
+            proc_cwd = None
+            cmd = [self.exec_path]
+            if 'DISPLAY' not in os.environ or not os.environ['DISPLAY']:
+                cmd = ['xvfb-run', '-s', '-screen 0 1080x768x24'] + cmd
+        elif sys.platform == 'win32':
             proc_cwd = os.path.dirname(self.exec_path)
             cmd = [os.path.basename(self.exec_path)]
         else:
