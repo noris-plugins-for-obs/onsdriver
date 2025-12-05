@@ -2,7 +2,23 @@
 
 This is a python library to start OBS Studio and control it.
 
-## Environment variables
+## Using the action
+
+We provide an action for GitHub workflows.
+```yaml
+      - name: 'Setup onsdriver'
+        uses: noris-plugin-for-obs/onsdriver@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          obs-plugins: |
+            ${{ runner.os == 'Linux' ? '' : 'build/' }}
+      - name: 'Test with onsdriver'
+        run: |
+          python -m unittest discover test-onsdriver/
+```
+
+### Environment variables
 
 | Name | Purpose |
 | ---- | ------- |

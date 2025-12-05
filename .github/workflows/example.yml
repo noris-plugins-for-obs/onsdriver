@@ -1,0 +1,30 @@
+name: 'Example workflow'
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  example:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Setup onsdriver'
+        uses: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Test with onsdriver'
+        run: |
+          python -m unittest discover test-example/
