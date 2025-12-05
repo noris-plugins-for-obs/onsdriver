@@ -37,7 +37,7 @@ elif sys.platform == 'win32':
     import onsdriver._plugin_install_win
 
     def _download_plugin(repo_name):
-        return download_asset_with_file_re(repo_name, r'.*windows.*\.zip')
+        return download_asset_with_file_re(repo_name, r'.*[Ww]indows.*\.zip')
 
     def _install_plugin(filename):
         if filename.endswith('.zip'):
