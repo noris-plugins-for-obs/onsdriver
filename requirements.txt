@@ -1,2 +1,2 @@
 obsws-python
-dmglib; platform_system=='darwin'
+dmglib; platform_system=='Darwin'
