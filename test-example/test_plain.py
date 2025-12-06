@@ -31,7 +31,7 @@ class PlainTest(obstest.OBSTest):
             },
         })
 
-        time.sleep(0.1)
+        time.sleep(1)
 
         res = cl.send('GetSceneItemList', {'sceneName': scene})
         names = [item['sourceName'] for item in res.scene_items]
