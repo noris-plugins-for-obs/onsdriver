@@ -11,6 +11,21 @@ _REQUIRED_PLUGIN_URLS = (
         'https://github.com/noris-plugins-for-obs/shutdown-plugin',
 )
 
+def _download_plugins(additional_plugins, info_only=False):
+    ret = []
+
+    for plugin in _REQUIRED_PLUGIN_URLS:
+        ret.append(obsplugin.download_plugin(plugin, info_only=info_only))
+
+    if additional_plugins:
+        for plugin in additional_plugins:
+            if plugin.startswith('http://') or plugin.startswith('https://'):
+                ret.append(obsplugin.download_plugin(plugin, info_only=info_only))
+            else:
+                ret.append(plugin)
+
+    return ret
+
 def _prepare_config(additional_plugins, lang):
     cfg = obsconfig.OBSConfig()
     cfg.remove_files()
@@ -21,15 +36,8 @@ def _prepare_config(additional_plugins, lang):
     cfg.get_user_cfg('General')['Language'] = lang or 'en-US'
     cfg.save_user_cfg()
 
-    for plugin in _REQUIRED_PLUGIN_URLS:
-        obsplugin.install_plugin(obsplugin.download_plugin(plugin))
-
-    if additional_plugins:
-        for plugin in additional_plugins:
-            if plugin.startswith('https://'):
-                obsplugin.install_plugin(obsplugin.download_plugin(plugin))
-            else:
-                obsplugin.install_plugin(plugin)
+    for path in _download_plugins(additional_plugins=additional_plugins):
+        obsplugin.install_plugin(path)
 
     return cfg
 
@@ -108,6 +116,10 @@ def run_firsttime(
 def _get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--configure', action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument('--plugins', nargs='+', default=[],
+                        help='Also installs specified plugins.')
+    parser.add_argument('--info-only', action='store_true', default=None,
+                        help='Print the asset information and exit')
     parser.add_argument('--run', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--save', action='store', default=None,
                         help='Path to save the configuration directory')
@@ -117,14 +129,22 @@ def _get_args():
                         help='After the first time run, starts OBS again.')
     parser.add_argument('--language', action='store', default=None,
                         help='Set the language code, default en-US')
-    parser.add_argument('--plugins', nargs='+', default=[],
-                        help='Also installs specified plugins.')
     args = parser.parse_args()
     return args
 
 def main():
     'Entry point'
     args = _get_args()
+
+    if args.info_only:
+        paths = _download_plugins(
+            additional_plugins = args.plugins,
+            info_only=True
+        )
+        for path in paths:
+            print(path)
+        return
+
     run_firsttime(
             configure = args.configure,
             run = args.run,

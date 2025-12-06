@@ -7,6 +7,7 @@ import json
 import os
 import os.path
 import re
+import sys
 import urllib.request
 
 _DOWNLOAD_CACHE_DIR = '.onsdriver-cache'
@@ -52,7 +53,8 @@ def _select_asset_from_gh(repo_name, file_re):
     aa = sorted(aa, key=lambda a: a['name'])
 
     if len(aa) > 1:
-        print('Info: Multiple candidates:\n ' + '\n '.join([a['name'] for a in aa]))
+        sys.stderr.write('Info: Multiple candidates:\n ' +
+                         '\n '.join([a["name"] for a in aa]) + '\n')
 
     return aa[-1]
 
@@ -100,10 +102,20 @@ def _download_gh_asset(asset, force_download=False):
 
     raise ValueError(f'{path}: size mismatch, expect {asset['size']} got {cached_size}')
 
-def download_asset_with_file_re(repo_name, file_re):
+def download_asset_with_file_re(repo_name, file_re, info_only=False):
     '''Download an asset from GitHub release page
     :param repo_name:  Repository URL like "https://github.com/owner/repo"
     :param file_re:    regex to select file to be downloaded
     '''
     asset = _select_asset_from_gh(repo_name, file_re)
+    if info_only:
+        ret = {
+                'name': asset['name'],
+                'url': asset['browser_download_url'],
+        }
+        if asset['digest'] and asset['digest'].startswith('sha256:'):
+            ret['digest'] = asset['digest'][7:]
+        else:
+            ret['size'] = asset['size']
+        return json.dumps(ret, sort_keys=True)
     return _download_gh_asset(asset)
