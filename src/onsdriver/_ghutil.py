@@ -100,7 +100,7 @@ def _download_gh_asset(asset, force_download=False):
     if not force_download:
         return _download_gh_asset(asset, force_download=True)
 
-    raise ValueError(f'{path}: size mismatch, expect {asset['size']} got {cached_size}')
+    raise ValueError(f'{path}: size mismatch, expect {asset["size"]} got {cached_size}')
 
 def download_asset_with_file_re(repo_name, file_re, info_only=False):
     '''Download an asset from GitHub release page
