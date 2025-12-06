@@ -5,6 +5,7 @@ Download asset from GitHub release page
 import hashlib
 import json
 import os
+import os.path
 import re
 import urllib.request
 
@@ -55,11 +56,11 @@ def _select_asset_from_gh(repo_name, file_re):
 
     return aa[-1]
 
-def _download_gh_asset(asset):
+def _download_gh_asset(asset, force_download=False):
     name = asset['name']
     url = asset['browser_download_url']
 
-    if asset['digest'].startswith('sha256:'):
+    if asset['digest'] and asset['digest'].startswith('sha256:'):
         content_digest = asset['digest'][7:]
         path = f'{_DOWNLOAD_CACHE_DIR}/{content_digest}/{name}'
     else:
@@ -68,20 +69,36 @@ def _download_gh_asset(asset):
         path = f'{_DOWNLOAD_CACHE_DIR}/{url_digest}/{name}'
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    if not os.path.exists(path):
+    if not os.path.exists(path) or force_download:
         with _gh_urlopen(url) as res:
             with open(path, 'wb') as fw:
-                fw.write(res.read())
+                while True:
+                    data = res.read(8192)
+                    if not data:
+                        break
+                    fw.write(data)
 
     if content_digest:
         with open(path, 'rb') as fr:
             digest = hashlib.file_digest(fr, 'sha256')
-        if content_digest != digest.hexdigest():
-            actual = digest.hexdigest()
-            raise ValueError(f'Digest of file {path} does not match, '
-                             f'expect {content_digest} got {actual}')
+        if content_digest == digest.hexdigest():
+            return path
 
-    return path
+        if not force_download:
+            return _download_gh_asset(asset, force_download=True)
+
+        actual = digest.hexdigest()
+        raise ValueError(f'{path}: Digest mismatch, expect {content_digest} got {actual}')
+
+    # No content_digest, check the size only.
+    cached_size = os.path.getsize(path)
+    if asset['size'] == cached_size:
+        return path
+
+    if not force_download:
+        return _download_gh_asset(asset, force_download=True)
+
+    raise ValueError(f'{path}: size mismatch, expect {asset['size']} got {cached_size}')
 
 def download_asset_with_file_re(repo_name, file_re):
     '''Download an asset from GitHub release page
