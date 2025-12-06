@@ -4,7 +4,7 @@ Plain test case for OBS Studio
 
 import time
 import unittest
-from onsdriver import obstest
+from onsdriver import obstest, obsui
 
 
 class PlainTest(obstest.OBSTest):
@@ -31,9 +31,21 @@ class PlainTest(obstest.OBSTest):
             },
         })
 
+        time.sleep(1)
+
         res = cl.send('GetSceneItemList', {'sceneName': scene})
         names = [item['sourceName'] for item in res.scene_items]
         self.assertIn(name, names)
+
+        ui = obsui.OBSUI(cl)
+        ui.grab(path=[], filename=f'screenshots/{self.name}-window.png', window=True)
+
+        try:
+            ui.grab(path=[], filename=f'screenshots/{self.name}-pillow.png', pillow=True)
+        except (ImportError, OSError) as e:
+            # ImportError: If Pillow is not installed, not raise error but just inform it.
+            # OSError: X connection failed on Linux if DISPLAY is not set.
+            print(e)
 
 
 if __name__ == '__main__':

@@ -31,6 +31,7 @@ jobs:
         shell: bash
         run: |
           export ONSDRIVER_LOGS=logs
+          python -m pip install Pillow
           python -m unittest discover test-example/
           7z a test-${{ runner.os }}.zip logs/ screenshots/
 
