@@ -2,13 +2,15 @@
 Communicate with ui-ws-automation plugin
 '''
 
+import base64
+import os
+import os.path
 from time import sleep
 
 _VENDOR_NAME = 'ui-ws-automation'
 
 class OBSUI:
     'Communicate with ui-ws-automation plugin'
-    # pylint: disable=too-few-public-methods
 
     def __init__(self, cl):
         self.cl = cl
@@ -31,3 +33,20 @@ class OBSUI:
                 'requestData': request_data,
         }
         return self._request(param, retry)
+
+    def grab(self, path, window=False, filename=None):
+        '''Request to get an image of a widget
+        :param path:      List to describe the widget.
+        :param window:    Boolean value to control grab type.
+        :param filename:  File name to save the PNG file to. If given, None is returned.
+        :return:          Bytes object representing PNG.
+        '''
+        s_type = 'window' if window else 'grab'
+        res = self.request('widget-grab', {'path': path, 'type': s_type})
+        png = base64.b64decode(res['image'])
+        if filename:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, 'wb') as fw:
+                fw.write(png)
+            return None
+        return png
