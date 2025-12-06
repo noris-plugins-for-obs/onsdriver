@@ -4,7 +4,7 @@ Plain test case for OBS Studio
 
 import time
 import unittest
-from onsdriver import obstest
+from onsdriver import obstest, obsui
 
 
 class PlainTest(obstest.OBSTest):
@@ -31,9 +31,14 @@ class PlainTest(obstest.OBSTest):
             },
         })
 
+        time.sleep(0.1)
+
         res = cl.send('GetSceneItemList', {'sceneName': scene})
         names = [item['sourceName'] for item in res.scene_items]
         self.assertIn(name, names)
+
+        ui = obsui.OBSUI(cl)
+        ui.grab(path=[], filename=f'screenshots/{self.name}-window.png', window=True)
 
 
 if __name__ == '__main__':
