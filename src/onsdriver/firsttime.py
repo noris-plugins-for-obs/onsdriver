@@ -97,7 +97,7 @@ def _run_obs(cfg, grab_png):
 
 def run_firsttime(
         # pylint: disable=too-many-arguments
-        *, configure=True, run=True, lang=None, additional_plugins=None, save_dst=None,
+        *, configure=True, run=True, lang=None, additional_plugins=None, size=None, save_dst=None,
         grab_png=None):
     '''Run the first time wizard and configure
     '''
@@ -108,6 +108,19 @@ def run_firsttime(
 
     if run:
         _run_obs(cfg, grab_png=grab_png)
+
+    cfg = obsconfig.OBSConfig()
+
+    if size:
+        if len(size) == 2:
+            size = size + size
+        profile = cfg.get_profile()
+        profile['Video']['BaseCX'] = str(size[0])
+        profile['Video']['BaseCY'] = str(size[1])
+        profile['Video']['OutputCX'] = str(size[2])
+        profile['Video']['OutputCY'] = str(size[3])
+        profile.save()
+
 
     if save_dst:
         cfg.save(dst_path=save_dst)
@@ -129,7 +142,13 @@ def _get_args():
                         help='After the first time run, starts OBS again.')
     parser.add_argument('--language', action='store', default=None,
                         help='Set the language code, default en-US')
+    parser.add_argument('--size', action='store', default=None,
+                        help='Set Base size and output size')
     args = parser.parse_args()
+
+    if args.size:
+        args.size = args.size.replace('x',':').split(':')
+
     return args
 
 def main():
@@ -151,6 +170,7 @@ def main():
             lang = args.language,
             additional_plugins = args.plugins,
             save_dst = args.save,
+            size = args.size,
             grab_png = args.grab,
     )
 
