@@ -79,6 +79,37 @@ class TemporaryConfigContext:
         self.restore()
 
 
+class OBSProfile:
+    '''
+    Access a profile
+    '''
+    def __init__(self, path=None):
+        self.path = path
+        self._basic_cfg = None
+
+    @property
+    def basic(self):
+        '''
+        Get a config instance for 'basic.ini'
+        '''
+        if self._basic_cfg:
+            return self._basic_cfg
+        self._basic_cfg = configparser.RawConfigParser()
+        self._basic_cfg.optionxform = lambda option: option
+        self._basic_cfg.read(self.path + '/basic.ini', 'utf-8-sig')
+        return self._basic_cfg
+
+    def __getitem__(self, section):
+        if section not in self.basic:
+            self.basic.add_section(section)
+        return self.basic[section]
+
+    def save(self):
+        'Save the updated config to basic.ini'
+        with open(self.path + '/basic.ini', 'w', encoding='utf-8') as fw:
+            self.basic.write(fw, space_around_delimiters=False)
+
+
 class OBSConfig:
     '''
     Base class to access configuration directory for obs-studio.
@@ -135,6 +166,15 @@ class OBSConfig:
         os.makedirs(self.path, mode=0o755, exist_ok=True)
         with open(self.path + '/user.ini', 'w', encoding='utf-8') as f:
             self._user_cfg.write(f, space_around_delimiters=False)
+
+    def get_profile(self, name=None):
+        '''Get the profile object
+        :param name:  Name of the profile. If not given, the default is selected.
+        :return:      OBSProfile instance.
+        '''
+        if not name:
+            name = self.get_user_cfg('Basic')['ProfileDir']
+        return OBSProfile(self.path + '/basic/profiles/' + name)
 
     def get_obsws_cfg(self):
         'Return obsws config data'
