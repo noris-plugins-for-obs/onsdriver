@@ -9,6 +9,25 @@ from time import sleep
 
 _VENDOR_NAME = 'ui-ws-automation'
 
+def _obj_match(obj, cond):
+    for key, value in cond.items():
+        if key not in obj:
+            return False
+        if obj[key] != value:
+            return False
+    return True
+
+def _find_object(objs, children_key, path, i_path=0):
+    for child in objs[children_key]:
+        if not _obj_match(child, path[i_path]):
+            continue
+        if i_path + 1 == len(path):
+            return child
+        ret = _find_object(child, children_key, path, i_path=i_path+1)
+        if ret:
+            return ret
+    return None
+
 class OBSUI:
     'Communicate with ui-ws-automation plugin'
 
@@ -33,6 +52,20 @@ class OBSUI:
                 'requestData': request_data,
         }
         return self._request(param, retry)
+
+    def menu_list(self, path=None):
+        'Return a list of menu actions'
+        res = self.request('menu-list', {})
+        if not path:
+            return res
+        return _find_object(res, 'menu', path)
+
+    def widget_list(self, path=None):
+        'Return a list of widgets'
+        res = self.request('widget-list', {})
+        if not path:
+            return res
+        return _find_object(res, 'children', path)
 
     def grab(self, path, window=False, filename=None):
         '''Request to get an image of a widget
