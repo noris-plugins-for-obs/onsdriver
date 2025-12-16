@@ -2,7 +2,42 @@
 
 This is a python library to start OBS Studio and control it.
 
-## Environment variables
+## Using the toolchain
+
+### Basic workflow
+
+#### Preparing OBS Studio
+
+We provide a script to download the latest OBS Studio.
+
+```sh
+onsdriver-obsinstall
+```
+
+This script will
+- download the latest OBS Studio from GitHub,
+- and extract it on a directory `./obs-studio`.
+
+#### Run the first-time wizard
+
+At first, we recommend to backup your configuration file.
+
+Then, run the script to invoke the first-time wizard and configure for the following steps.
+```sh
+onsdriver-firsttime --save ./saved-config
+```
+
+This script will
+- remove the existing configuration of OBS Studio,
+- install necessary plugins to control OBS Studio,
+- run OBS Studio (under `./obs-studio`) and proceed the first-time wizard,
+- enable obs-websocket,
+- and copy the configuration into `./saved-config`.
+
+#### Run your tests
+
+
+### Environment variables
 
 | Name | Purpose |
 | ---- | ------- |
