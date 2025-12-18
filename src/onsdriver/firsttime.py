@@ -4,6 +4,8 @@ Run the first-time wizard and configure OBS Studio
 
 import argparse
 import base64
+import os
+import shutil
 from onsdriver import obsconfig, obsplugin, obsexec, obsui
 
 _REQUIRED_PLUGIN_URLS = (
@@ -94,11 +96,17 @@ def _run_obs(cfg, grab_png):
 
     obs.shutdown()
 
+def _move_logs(cfg, dstdir, prefix):
+    os.makedirs(dstdir, exist_ok=True)
+    logsdir = cfg.path + '/logs/'
+    for f in os.listdir(logsdir):
+        dst = dstdir + '/' + prefix + f.replace('-', '').replace(' ', '-')
+        shutil.move(logsdir+f, dst)
 
 def run_firsttime(
         # pylint: disable=too-many-arguments
         *, configure=True, run=True, lang=None, additional_plugins=None, size=None, save_dst=None,
-        grab_png=None):
+        grab_png=None, logs=None):
     '''Run the first time wizard and configure
     '''
     if configure:
@@ -108,6 +116,8 @@ def run_firsttime(
 
     if run:
         _run_obs(cfg, grab_png=grab_png)
+        if logs:
+            _move_logs(cfg, logs, prefix='firsttime-')
 
     cfg = obsconfig.OBSConfig()
 
@@ -144,6 +154,8 @@ def _get_args():
                         help='Set the language code, default en-US')
     parser.add_argument('--size', action='store', default=None,
                         help='Set Base size and output size')
+    parser.add_argument('--logs', action='store', default=None,
+                        help='Move log file to the specified directory')
     args = parser.parse_args()
 
     if args.size:
@@ -172,11 +184,14 @@ def main():
             save_dst = args.save,
             size = args.size,
             grab_png = args.grab,
+            logs = args.logs,
     )
 
     if args.run_again:
         obs = obsexec.OBSExec(run=True)
         obs.wait()
+        if args.logs:
+            _move_logs(obs.config, dstdir=args.logs, prefix='firsttime-again-')
 
 if __name__ == '__main__':
     main()
