@@ -138,9 +138,13 @@ class OBSExec:
             # Ensure the main window is visible,
             # If not, ie. websocket request goes too early, UI will be corrupted.
             for _ in util.retry(timeout=10, error_msg='Waiting main window is visible'):
-                res = ui.request('widget-list', {})
-                if res['visible']:
-                    break
+                try:
+                    res = ui.request('widget-list', {})
+                    if res['visible']:
+                        break
+                except obsws_python.error.OBSSDKRequestError:
+                    # Ignore error code: 207 message: OBS is not ready to perform the request.
+                    pass
 
     def _get_obsws_passwd(self):
         cfg = self.config.get_obsws_cfg()
