@@ -37,8 +37,9 @@ class OBSTest(unittest.TestCase):
         if not os.path.isabs(prefix):
             try:
                 logsdir = os.environ['ONSDRIVER_LOGS']
-                dst = logsdir + '/' + dst
             except KeyError:
-                pass
+                logsdir = 'logs'
+            os.makedirs(logsdir, exist_ok=True)
+            dst = logsdir + '/' + dst
 
         shutil.move(src, dst)
