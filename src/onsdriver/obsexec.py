@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 import obsws_python
-from onsdriver import obsconfig, obsui
+from onsdriver import obsconfig, obsui, util
 
 _WAIVED_ERRORS_RE_LIST = (
     r'error: Failed to rename basic scene collection file:', # first time
@@ -117,12 +117,18 @@ class OBSExec:
         )
 
         # Wait startup
-        # macos: Sometimes mac-avcapture-legacy takes 5 seconds.
+        # macOS: mac-avcapture-legacy takes up to 5 seconds.
+        # Windows: Sometimes starting EXE takes 10 seconds.
         time.sleep(0.2)
-        retry = 100
-        while retry > 0 and not self._obs_started():
-            time.sleep(0.1)
-            retry -= 1
+        if sys.platform == 'win32':
+            timeout = 25
+            wait = 0.5
+        else:
+            timeout = 10
+            wait = 0.1
+        while util.retry(timeout=timeout, each_wait=wait, error_msg='Checking startup by log'):
+            if self._obs_started():
+                break
 
         cfg = self.config.get_obsws_cfg()
         if 'server_enabled' in cfg and cfg['server_enabled']:
@@ -131,13 +137,10 @@ class OBSExec:
 
             # Ensure the main window is visible,
             # If not, ie. websocket request goes too early, UI will be corrupted.
-            retry += 1
-            while retry > 0:
+            while util.retry(timeout=10, error_msg='Waiting main window is visible'):
                 res = ui.request('widget-list', {})
                 if res['visible']:
                     break
-                time.sleep(0.1)
-                retry -= 1
 
     def _get_obsws_passwd(self):
         cfg = self.config.get_obsws_cfg()
