@@ -167,13 +167,26 @@ class OBSConfig:
         with open(self.path + '/user.ini', 'w', encoding='utf-8') as f:
             self._user_cfg.write(f, space_around_delimiters=False)
 
+    def get_last_version(self):
+        '''Get the last OBS Studio version
+        :return:  Tuple of major, minor, and patch version numbers
+        '''
+        version_int = int(self.get_global_cfg('General')['LastVersion'])
+        major = version_int >> 24
+        minor = (version_int >> 16) & 0xFF
+        patch = version_int & 0xFFFF
+        return (major, minor, patch)
+
     def get_profile(self, name=None):
         '''Get the profile object
         :param name:  Name of the profile. If not given, the default is selected.
         :return:      OBSProfile instance.
         '''
         if not name:
-            name = self.get_user_cfg('Basic')['ProfileDir']
+            if self.get_last_version() < (31, 0, 0):
+                name = self.get_global_cfg('Basic')['ProfileDir']
+            else:
+                name = self.get_user_cfg('Basic')['ProfileDir']
         return OBSProfile(self.path + '/basic/profiles/' + name)
 
     def get_obsws_cfg(self):
