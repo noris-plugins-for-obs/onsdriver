@@ -25,7 +25,8 @@ def _extract(pkg_path, destination):
         subprocess.run(['7z', 'x', '-o'+destination, pkg_path], check=True)
     util.ignore_directory(destination)
 
-def install_obs(destination='./obs-studio', selector_re=None, info_only=False):
+def install_obs(
+        destination='./obs-studio', selector_re=None, info_only=False, version_specs=None):
     '''Download OBS Studio from GitHub release and install it.
     :param destination:  Destination to extract OBS Studio.
     :param selector_re:  Regular expression to select the file.
@@ -33,13 +34,14 @@ def install_obs(destination='./obs-studio', selector_re=None, info_only=False):
 
     if not selector_re:
         if sys.platform == 'darwin':
-            selector_re = r'^OBS-Studio-.*-macOS-Apple.dmg$'
+            selector_re = r'^(OBS-Studio-.*-macOS-Apple.dmg|obs-studio-[0-9.]*-macos-arm64.dmg)$'
         elif sys.platform == 'win32':
             selector_re = r'^OBS-Studio-.*-Windows-x64.zip$'
         else:
             raise NotImplementedError(f'Not supported platform: {sys.platform}')
 
-    pkg_path = download_asset_with_file_re(_OBS_REPO, selector_re, info_only=info_only)
+    pkg_path = download_asset_with_file_re(
+            _OBS_REPO, selector_re, info_only=info_only, version_specs=version_specs)
     if info_only:
         return pkg_path
 
@@ -52,6 +54,7 @@ def _get_args():
     parser.add_argument('-d', '--destination', action='store', default='./obs-studio')
     parser.add_argument('--info-only', action='store_true', default=None,
                         help='Print the asset information and exit')
+    parser.add_argument('--version-specs', action='store', default=None)
     args = parser.parse_args()
     return args
 
@@ -59,7 +62,8 @@ def main():
     'Entry point'
     args = _get_args()
 
-    ret = install_obs(destination=args.destination, info_only=args.info_only)
+    ret = install_obs(destination=args.destination, info_only=args.info_only,
+                      version_specs=args.version_specs)
 
     if args.info_only:
         print(ret)

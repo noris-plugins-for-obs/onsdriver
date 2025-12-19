@@ -9,11 +9,16 @@ import os.path
 import re
 import sys
 import urllib.request
+import urllib.parse
+import urllib.error
+from packaging.specifiers import SpecifierSet
 from onsdriver import util
 
 _DOWNLOAD_CACHE_DIR = '.onsdriver-cache'
 
-def _gh_urlopen(url):
+def _gh_urlopen(url, params=None):
+    if params:
+        url = url + '?' + urllib.parse.urlencode(params)
     req = urllib.request.Request(url)
     if 'GITHUB_TOKEN' in os.environ:
         token = os.environ['GITHUB_TOKEN']
@@ -21,19 +26,32 @@ def _gh_urlopen(url):
     return urllib.request.urlopen(req)
 
 def _get_release_url(repo_name):
-    m = re.match(r'https?://github.com/([^/]+/[^/]+)/releases/(tags/[^/]+)/?$', repo_name)
+    m = re.match(
+            r'https?://(github.com|api.github.com/repos)/([^/]+/[^/]+)/releases/(tags/[^/]+)/?$',
+            repo_name)
     if m:
-        return f'https://api.github.com/repos/{m[1]}/releases/{m[2]}'
-    m = re.match(r'https?://github.com/([^/]+/[^/]+)(|/|/releases/?)$', repo_name)
+        return f'https://api.github.com/repos/{m[2]}/releases/{m[3]}'
+    m = re.match(
+            r'https?://(github.com|api.github.com/repos)/([^/]+/[^/]+)(|/|/releases/?)$', repo_name)
     if m:
-        return f'https://api.github.com/repos/{m[1]}/releases/latest'
+        return f'https://api.github.com/repos/{m[2]}/releases/latest'
     raise ValueError(f'Cannot get GitHub.com API URL for {repo_name}')
 
-def _select_asset_from_gh(repo_name, file_re):
+def _get_releases_url(repo_name):
+    m = re.match(
+            r'https?://(github.com|api.github.com/repos)/([^/]+/[^/]+)(|/|/releases/?)$', repo_name)
+    if m:
+        return f'https://api.github.com/repos/{m[2]}/releases'
+    raise ValueError(f'Cannot get GitHub.com API URL for {repo_name}')
+
+def _select_asset_from_gh(repo_name, file_re, filter_cb=None, version_specs=None):
     if isinstance(file_re, str):
         file_re = re.compile(file_re)
 
-    release_url = _get_release_url(repo_name)
+    if version_specs:
+        release_url = _latest_release_with_version(repo_name, version_specs)
+    else:
+        release_url = _get_release_url(repo_name)
 
     try:
         with _gh_urlopen(release_url) as res:
@@ -52,12 +70,14 @@ def _select_asset_from_gh(repo_name, file_re):
         raise ValueError(f'No matching assets, available {" ".join(names)}')
 
     aa = sorted(aa, key=lambda a: a['name'])
+    if filter_cb:
+        aa = filter_cb(aa)
 
     if len(aa) > 1:
         sys.stderr.write('Info: Multiple candidates:\n ' +
                          '\n '.join([a["name"] for a in aa]) + '\n')
 
-    return aa[-1]
+    return aa[-1], latest
 
 def _download_gh_asset(asset, force_download=False):
     name = asset['name']
@@ -105,16 +125,56 @@ def _download_gh_asset(asset, force_download=False):
 
     raise ValueError(f'{path}: size mismatch, expect {asset["size"]} got {cached_size}')
 
-def download_asset_with_file_re(repo_name, file_re, info_only=False):
-    '''Download an asset from GitHub release page
+def _list_releases(repo_name, include_prerelease=False):
+    '''Get the list of releases
     :param repo_name:  Repository URL like "https://github.com/owner/repo"
-    :param file_re:    regex to select file to be downloaded
+    :param include_prerelease:
+                       If false, exclude prerelease
+    :return:           List of the release information
     '''
-    asset = _select_asset_from_gh(repo_name, file_re)
+    releases_url = _get_releases_url(repo_name)
+    page = 0
+    while True:
+        page += 1
+        try:
+            with _gh_urlopen(releases_url, params={'per_page': 100, 'page': page}) as res:
+                releases = json.loads(res.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code==422: # Unprocessable Entity
+                return
+            raise ValueError(f'{e}: {releases_url}') from e
+
+        if not releases:
+            break
+
+        if not include_prerelease:
+            releases = [rel for rel in releases if not rel['prerelease']]
+
+        yield from releases
+
+def _latest_release_with_version(repo_name, version_specs):
+    if isinstance(version_specs, str):
+        version_specs = SpecifierSet(version_specs)
+    for rel in _list_releases(repo_name):
+        if version_specs.contains(rel['tag_name']):
+            return rel['url']
+    raise ValueError(f'No tags matching {version_specs} in {repo_name}')
+
+def download_asset_with_file_re(
+        repo_name, file_re, filter_cb=None, info_only=False, version_specs=None):
+    '''Download an asset from GitHub release page
+    :param repo_name:  Repository URL like "https://github.com/owner/repo" or a release URL
+    :param file_re:    regex to select file to be downloaded
+    :param filter_cb:  Callback function to filter assets
+    :param version_specs:  Optional condition for version selection
+    '''
+    asset, release = _select_asset_from_gh(
+            repo_name, file_re, filter_cb=filter_cb, version_specs=version_specs)
     if info_only:
         ret = {
                 'name': asset['name'],
                 'url': asset['browser_download_url'],
+                'tag_name': release['tag_name'],
         }
         if asset['digest'] and asset['digest'].startswith('sha256:'):
             ret['digest'] = asset['digest'][7:]
@@ -122,3 +182,28 @@ def download_asset_with_file_re(repo_name, file_re, info_only=False):
             ret['size'] = asset['size']
         return json.dumps(ret, sort_keys=True)
     return _download_gh_asset(asset)
+
+
+def _get_args():
+    import argparse # pylint: disable=import-outside-toplevel
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--release-url', action='store_true', default=False)
+    parser.add_argument('--list-releases', action='store_true', default=False)
+    parser.add_argument('repo', default=None)
+    args = parser.parse_args()
+    return args
+
+def main():
+    'Entry point'
+    args = _get_args()
+
+    if args.release_url:
+        print(_get_release_url(args.repo))
+        return
+
+    if args.list_releases:
+        for rel in _list_releases(args.repo):
+            print(rel)
+
+if __name__ == '__main__':
+    main()
