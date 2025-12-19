@@ -126,7 +126,7 @@ class OBSExec:
         else:
             timeout = 10
             wait = 0.1
-        while util.retry(timeout=timeout, each_wait=wait, error_msg='Checking startup by log'):
+        for _ in util.retry(timeout=timeout, each_wait=wait, error_msg='Checking startup by log'):
             if self._obs_started():
                 break
 
@@ -137,7 +137,7 @@ class OBSExec:
 
             # Ensure the main window is visible,
             # If not, ie. websocket request goes too early, UI will be corrupted.
-            while util.retry(timeout=10, error_msg='Waiting main window is visible'):
+            for _ in util.retry(timeout=10, error_msg='Waiting main window is visible'):
                 res = ui.request('widget-list', {})
                 if res['visible']:
                     break

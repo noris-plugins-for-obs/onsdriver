@@ -7,7 +7,7 @@ import time
 def retry(timeout, each_wait=0.1, error_msg=None):
     '''Retry until meeting a condition
     Use this function with `while` statement like below.
-    while retry(timeout=10):
+    for _ in retry(timeout=10):
         good = your_task()
         if good:
             break
