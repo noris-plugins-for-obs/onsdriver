@@ -13,11 +13,11 @@ _REQUIRED_PLUGIN_URLS = (
         'https://github.com/noris-plugins-for-obs/shutdown-plugin',
 )
 
-def _download_plugins(additional_plugins, info_only=False):
+def _download_plugins(additional_plugins, obs=None, info_only=False):
     ret = []
 
     for plugin in _REQUIRED_PLUGIN_URLS:
-        ret.append(obsplugin.download_plugin(plugin, info_only=info_only))
+        ret.append(obsplugin.download_plugin(plugin, obs=obs, info_only=info_only))
 
     if additional_plugins:
         for plugin in additional_plugins:
@@ -28,7 +28,7 @@ def _download_plugins(additional_plugins, info_only=False):
 
     return ret
 
-def _prepare_config(additional_plugins, lang):
+def _prepare_config(obs, additional_plugins, lang):
     cfg = obsconfig.OBSConfig()
     cfg.remove_files()
     cfg.get_global_cfg('General')['EnableAutoUpdates'] = 'false'
@@ -38,7 +38,7 @@ def _prepare_config(additional_plugins, lang):
     cfg.get_user_cfg('General')['Language'] = lang or 'en-US'
     cfg.save_user_cfg()
 
-    for path in _download_plugins(additional_plugins=additional_plugins):
+    for path in _download_plugins(obs=obs, additional_plugins=additional_plugins):
         obsplugin.install_plugin(path)
 
     return cfg
@@ -105,12 +105,12 @@ def _move_logs(cfg, dstdir, prefix):
 
 def run_firsttime(
         # pylint: disable=too-many-arguments
-        *, configure=True, run=True, lang=None, additional_plugins=None, size=None, save_dst=None,
-        grab_png=None, logs=None):
+        *, configure=True, run=True, lang=None, obs=None, additional_plugins=None, size=None,
+        save_dst=None, grab_png=None, logs=None):
     '''Run the first time wizard and configure
     '''
     if configure:
-        cfg = _prepare_config(additional_plugins=additional_plugins, lang=lang)
+        cfg = _prepare_config(obs=obs, additional_plugins=additional_plugins, lang=lang)
     else:
         cfg = obsconfig.OBSConfig()
 
@@ -145,6 +145,8 @@ def _get_args():
                         help='Also installs specified plugins.')
     parser.add_argument('--info-only', action='store_true', default=None,
                         help='Print the asset information and exit')
+    parser.add_argument('--obs', action='store', default=None,
+                        help='OBS Studio version')
     parser.add_argument('--run', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--save', action='store', default=None,
                         help='Path to save the configuration directory')
@@ -171,6 +173,7 @@ def main():
 
     if args.info_only:
         paths = _download_plugins(
+            obs = args.obs,
             additional_plugins = args.plugins,
             info_only=True
         )
@@ -182,6 +185,7 @@ def main():
             configure = args.configure,
             run = args.run,
             lang = args.language,
+            obs = args.obs,
             additional_plugins = args.plugins,
             save_dst = args.save,
             size = args.size,

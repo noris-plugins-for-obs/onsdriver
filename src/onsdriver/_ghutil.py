@@ -28,7 +28,7 @@ def _get_release_url(repo_name):
         return f'https://api.github.com/repos/{m[1]}/releases/latest'
     raise ValueError(f'Cannot get GitHub.com API URL for {repo_name}')
 
-def _select_asset_from_gh(repo_name, file_re):
+def _select_asset_from_gh(repo_name, file_re, filter_cb=None):
     if isinstance(file_re, str):
         file_re = re.compile(file_re)
 
@@ -51,6 +51,8 @@ def _select_asset_from_gh(repo_name, file_re):
         raise ValueError(f'No matching assets, available {" ".join(names)}')
 
     aa = sorted(aa, key=lambda a: a['name'])
+    if filter_cb:
+        aa = filter_cb(aa)
 
     if len(aa) > 1:
         sys.stderr.write('Info: Multiple candidates:\n ' +
@@ -102,12 +104,13 @@ def _download_gh_asset(asset, force_download=False):
 
     raise ValueError(f'{path}: size mismatch, expect {asset["size"]} got {cached_size}')
 
-def download_asset_with_file_re(repo_name, file_re, info_only=False):
+def download_asset_with_file_re(repo_name, file_re, filter_cb=None, info_only=False):
     '''Download an asset from GitHub release page
     :param repo_name:  Repository URL like "https://github.com/owner/repo"
     :param file_re:    regex to select file to be downloaded
+    :param filter_cb:  Callback function to filter assets
     '''
-    asset = _select_asset_from_gh(repo_name, file_re)
+    asset = _select_asset_from_gh(repo_name, file_re, filter_cb=filter_cb)
     if info_only:
         ret = {
                 'name': asset['name'],
