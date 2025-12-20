@@ -4,6 +4,28 @@ This module provides useful functions when testing with obs-studio.
 
 import time
 
+class RetryAttempt:
+    'Describes the contex of the attempt to retry'
+    def __init__(self, count, error_msg):
+        self.count = count
+        self.error_msg = error_msg
+
+    def __str__(self):
+        if self.count <= 1:
+            return f'{self.count} attempt'
+        return f'{self.count} attempts'
+
+    def increment(self):
+        'Increment the count'
+        self.count += 1
+        return self
+
+    def set_error(self, error_msg):
+        '''Set the last error message
+        This will be useful to describe the status of the last iteration.
+        '''
+        self.error_msg = error_msg
+
 def retry(timeout, each_wait=0.1, error_msg=None):
     '''Retry until meeting a condition
     Use this function with `while` statement like below.
@@ -14,12 +36,13 @@ def retry(timeout, each_wait=0.1, error_msg=None):
     :param timeout:    Set the timeout in second
     :param each_wait:  Sleep time for each
     '''
-    yield None
+    attempt = RetryAttempt(1, error_msg)
+    yield attempt
 
     count = int(timeout // each_wait + 0.5)
     while count > 0:
         time.sleep(each_wait)
-        yield None
+        yield attempt.increment()
         count -= 1
 
-    raise TimeoutError(error_msg)
+    raise TimeoutError(attempt.error_msg)
