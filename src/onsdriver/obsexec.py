@@ -214,7 +214,7 @@ class OBSExec:
         'Shutdown OBS Studio'
         cl = self.get_obsws()
         res = cl.send('CallVendorRequest', {
-            'vendorName': 'obs-shutdown-plugin',
+            'vendorName': 'shutdown-plugin',
             'requestType': 'shutdown',
             'requestData': {
                 'reason': f'requested through onsdriver by {sys.argv[0]}',
