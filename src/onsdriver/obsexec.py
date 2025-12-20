@@ -163,33 +163,25 @@ class OBSExec:
         '''
         if use_cache:
             try:
-                if self._obsws and not self._obsws.base_client.ws.connected:
-                    self._obsws = None
-            except: # pylint: disable=bare-except
+                if self._obsws and self._obsws.base_client.ws.connected:
+                    return self._obsws
+            except AttributeError:
                 pass
 
-            if self._obsws:
-                return self._obsws
+        if not self.proc_obs:
+            raise RuntimeError('OBS is not started')
 
-        n_retry = 10
-        err = None
-        while n_retry > 0:
-            n_retry -= 1
+        for attempt in util.retry(timeout=5, error_msg='connecting to websocket'):
             try:
                 pw = self._get_obsws_passwd()
                 self._obsws = obsws_python.ReqClient(host='localhost', port=4455, password=pw)
-                if sys.platform == 'linux' and n_retry != 9:
-                    print(f'Info: Succeeded to connect websocket after {8 - n_retry} attempt(s).')
+                if sys.platform == 'linux' and attempt.count >= 2:
+                    print(f'Info: Succeeded to connect websocket after {attempt}.')
                     sys.stdout.flush()
                 return self._obsws
             except ConnectionRefusedError as e:
-                err = e
-                if self.proc_obs and self.proc_obs.poll() is None:
-                    time.sleep(3)
-                    if n_retry < 7:
-                        print(f'Info: Failed to connect websocket {e=}. {n_retry} more attempt(s).')
-                        sys.stdout.flush()
-        raise err
+                attempt.set_error(str(e))
+        raise NotImplementedError()
 
     def close_ws(self):
         'Close the last websocket client to prepare shutdown'
@@ -242,6 +234,8 @@ class OBSExec:
         'Wait OBS to exit'
         self.close_ws()
 
+        if not self.proc_obs:
+            return
         exit_code = self.proc_obs.wait()
         if exit_code != 0:
             raise OSError(f'OBS exit with code {exit_code}')
