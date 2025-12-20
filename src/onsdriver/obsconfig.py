@@ -58,7 +58,7 @@ class TemporaryConfigContext:
 
     def restore(self):
         'Restore the backed-up config directory'
-        if not self._need_restore:
+        if not self._need_restore or not self.backup_dir:
             return
         self._need_restore = False
         cfg_dir = _get_config_dir()
