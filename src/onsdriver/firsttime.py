@@ -28,15 +28,12 @@ def _download_plugins(additional_plugins, info_only=False):
 
     return ret
 
-def _prepare_config(additional_plugins, lang):
+def _prepare_config(additional_plugins):
     cfg = obsconfig.OBSConfig()
     cfg.remove_files()
     cfg.get_global_cfg('General')['EnableAutoUpdates'] = 'false'
     cfg.get_global_cfg('General')['MacOSPermissionsDialogLastShown'] = '65535'
     cfg.save_global_cfg()
-
-    cfg.get_user_cfg('General')['Language'] = lang or 'en-US'
-    cfg.save_user_cfg()
 
     for path in _download_plugins(additional_plugins=additional_plugins):
         obsplugin.install_plugin(path)
@@ -110,7 +107,7 @@ def run_firsttime(
     '''Run the first time wizard and configure
     '''
     if configure:
-        cfg = _prepare_config(additional_plugins=additional_plugins, lang=lang)
+        cfg = _prepare_config(additional_plugins=additional_plugins)
     else:
         cfg = obsconfig.OBSConfig()
 
@@ -122,6 +119,9 @@ def run_firsttime(
                 _move_logs(cfg, logs, prefix='firsttime-')
 
     cfg = obsconfig.OBSConfig()
+
+    cfg.get_user_cfg('General')['Language'] = lang or 'en-US'
+    cfg.save_user_cfg()
 
     if size:
         if len(size) == 2:
