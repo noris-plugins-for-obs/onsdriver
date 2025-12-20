@@ -115,9 +115,11 @@ def run_firsttime(
         cfg = obsconfig.OBSConfig()
 
     if run:
-        _run_obs(cfg, grab_png=grab_png)
-        if logs:
-            _move_logs(cfg, logs, prefix='firsttime-')
+        try:
+            _run_obs(cfg, grab_png=grab_png)
+        finally:
+            if logs:
+                _move_logs(cfg, logs, prefix='firsttime-')
 
     cfg = obsconfig.OBSConfig()
 
@@ -188,10 +190,12 @@ def main():
     )
 
     if args.run_again:
-        obs = obsexec.OBSExec(run=True)
-        obs.wait()
-        if args.logs:
-            _move_logs(obs.config, dstdir=args.logs, prefix='firsttime-again-')
+        try:
+            obs = obsexec.OBSExec(run=True)
+            obs.wait()
+        finally:
+            if args.logs:
+                _move_logs(obs.config, dstdir=args.logs, prefix='firsttime-again-')
 
 if __name__ == '__main__':
     main()
