@@ -189,6 +189,19 @@ class OBSConfig:
                 name = self.get_user_cfg('Basic')['ProfileDir']
         return OBSProfile(self.path + '/basic/profiles/' + name)
 
+    def get_scenecollection_file(self, name=None):
+        '''Get the scene-collection file path
+        :param name:  Name of the profile. If not given, the default is selected.
+        :return:      Scene collection JSON file path.
+        '''
+        if name:
+            return f'{self.path}/basic/scenes/{name}.json'
+        if self.get_last_version() < (31, 0, 0):
+            fname = self.get_global_cfg('Basic')['SceneCollectionFile']
+        else:
+            fname = self.get_user_cfg('Basic')['SceneCollectionFile']
+        return f'{self.path}/basic/scenes/{fname}'
+
     def get_obsws_cfg(self):
         'Return obsws config data'
         try:
