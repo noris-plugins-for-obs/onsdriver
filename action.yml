@@ -133,6 +133,12 @@ runs:
       run: |
         set -e
 
+        if ${{ runner.os == 'Linux' }}; then
+          cmd_prefix=(xvfb-run -s '-screen 0 1080x768x24')
+        else
+          cmd_prefix=()
+        fi
+
         plugins_args=(${{ inputs.obs-plugins }})
         if (( ${#plugins_args[@]} > 0 )); then
           plugins_args=(--plugins "${plugins_args[@]}")
@@ -144,7 +150,7 @@ runs:
           args=()
         fi
 
-        python -m onsdriver.firsttime \
+        "${cmd_prefix[@]}" python -m onsdriver.firsttime \
           "${plugins_args[@]}" \
           "${args[@]}" \
           --size "${{ inputs.graphics-size }}" \
