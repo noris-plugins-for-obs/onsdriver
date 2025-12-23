@@ -67,13 +67,30 @@ class OBSUI:
             return res
         return _find_object(res, 'children', path)
 
-    def grab(self, path, window=False, filename=None):
+    def _grab_by_pillow(self, path, filename):
+        geo = self.request('widget-invoke', {
+            'path': path,
+            'method': 'frameGeometry',
+            'mapToGlobal': True,
+        })
+        x, y = geo['x'], geo['y']
+        w, h = geo['width'], geo['height']
+        from PIL import ImageGrab # pylint: disable=import-outside-toplevel
+        img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
+        if filename:
+            return img.save(filename)
+        return img
+
+    def grab(self, path, window=False, pillow=False, filename=None):
         '''Request to get an image of a widget
         :param path:      List to describe the widget.
         :param window:    Boolean value to control grab type.
+        :param pillow:    Use Pillow to grab if true.
         :param filename:  File name to save the PNG file to. If given, None is returned.
         :return:          Bytes object representing PNG.
         '''
+        if pillow:
+            return self._grab_by_pillow(path=path, filename=filename)
         s_type = 'window' if window else 'grab'
         res = self.request('widget-grab', {'path': path, 'type': s_type})
         png = base64.b64decode(res['image'])
