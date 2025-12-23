@@ -18,6 +18,8 @@ _WAIVED_ERRORS_RE_LIST = (
     r'error: glBindFramebuffer failed, glGetError returned GL_INVALID_OPERATION', # random
     r'error: \[mac-virtualcam\] mac-camera-extension: OSSystemExtensionErrorCode 2',
     r'error: os_dlopen.*VLC.app',
+    r'error: os_dlopen.*libvlc.so.[0-9]: cannot open shared object file',
+    r'error: window manager does not support Extended Window Manager Hints',
     r'error: Crash sentinel location .* unable to create directory', # first time on Windows
     r'error: .* libnvidia-encode.so.[1-9]: cannot open shared object file',
 )
