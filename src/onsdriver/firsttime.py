@@ -6,7 +6,7 @@ import argparse
 import base64
 import os
 import shutil
-from onsdriver import obsconfig, obsplugin, obsexec, obsui
+from onsdriver import obsconfig, obsplugin, obsexec, obsui, util
 
 _REQUIRED_PLUGIN_URLS = (
         'https://github.com/noris-plugins-for-obs/ui-ws-automation',
@@ -95,6 +95,7 @@ def _run_obs(cfg, grab_png):
 
 def _move_logs(cfg, dstdir, prefix):
     os.makedirs(dstdir, exist_ok=True)
+    util.ignore_directory(dstdir)
     logsdir = cfg.path + '/logs/'
     for f in os.listdir(logsdir):
         dst = dstdir + '/' + prefix + f.replace('-', '').replace(' ', '-')
@@ -136,6 +137,7 @@ def run_firsttime(
 
     if save_dst:
         cfg.save(dst_path=save_dst)
+        util.ignore_directory(save_dst)
 
 
 def _get_args():
