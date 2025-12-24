@@ -1,0 +1,41 @@
+name: 'Example workflow'
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  example:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Setup onsdriver'
+        uses: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          first-time-log: ./logs/
+
+      - name: 'Test with onsdriver'
+        shell: bash
+        run: |
+          export ONSDRIVER_LOGS=logs
+          python -m unittest discover test-example/
+          7z a test-${{ runner.os }}.zip logs/ screenshots/
+
+      - name: 'Upload screenshots and logs'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-${{ runner.os }}
+          path: test-${{ runner.os }}.zip

@@ -1,0 +1,5 @@
+obs-studio
+xvfb
+x11-xserver-utils
+ui-ws-automation-for-obs
+shutdown-plugin-for-obs

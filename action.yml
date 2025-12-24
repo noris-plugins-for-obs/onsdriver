@@ -1,0 +1,161 @@
+name: 'Prepare onsdriver'
+description: 'Library to test plugins for OBS Studio'
+inputs:
+  setup-python:
+    description: 'Setup python if true'
+    required: false
+    default: true
+    type: boolean
+  python-version:
+    description: 'Version of python'
+    required: false
+    default: '3.13'
+    type: string
+  skip-packages:
+    description: 'Do not install these packages'
+    required: false
+    default: ''
+    type: string
+  obs-plugins:
+    description: 'Additional plugins to install'
+    required: false
+    default: ''
+    type: string
+  graphics-size:
+    description: 'Set graphics size'
+    required: false
+    default: '1280x720'
+    type: string
+  first-time-log:
+    description: 'Directory to save the log files of the first-time run'
+    required: false
+    default: ''
+    type: string
+  config-directory:
+    description: 'Directory to save the configuration after the first-time wizard'
+    required: false
+    default: './saved-config'
+    type: string
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Setup Python'
+      if: ${{ inputs.setup-python }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: 'Install onsdriver and prepare'
+      shell: bash
+      id: prep
+      env:
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+      run: |
+        set -e
+        plugins_args=(${{ inputs.obs-plugins }})
+        python -m pip install -e '${{ github.action_path }}'
+        if ${{ runner.os == 'Linux' }}; then
+          skip_packages=(${{ inputs.skip-packages }})
+          for p in "${skip_packages[@]}"; do
+            grep -v -F -x "$p" < '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt' > t
+            mv t '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt'
+          done
+          for p in "${plugins_args[@]}"; do
+            echo "$p" >> '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt'
+          done
+          hash=$(cat /etc/issue '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt' | sha256sum - | cut -f1 -d' ')
+          echo "apt_hash=$hash" >> $GITHUB_OUTPUT
+        else
+          if (( ${#plugins_args[@]} > 0 )); then
+            plugins_args=(--plugins "${plugins_args[@]}")
+          fi
+          {
+            python -m onsdriver.obsinstall --info-only
+            python -m onsdriver.firsttime "${plugins_args[@]}" --info-only
+          } > onsdriver-info.txt
+          hash=$(sha256sum onsdriver-info.txt | cut -f1 -d' ')
+          echo "onsdriver_hash=$hash" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 'Restore ONS Driver cache'
+      if: ${{ runner.os != 'Linux' }}
+      id: onsdriver-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: '.onsdriver-cache'
+        key: ${{ runner.os }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
+        restore-keys: ${{ runner.os }}-onsdriver-
+
+    - name: 'Install OBS Studio'
+      if: ${{ runner.os != 'Linux' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+      run: |
+        python -m onsdriver.obsinstall
+
+    - name: 'Restore apt cache'
+      if: ${{ runner.os == 'Linux' }}
+      id: apt-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: /tmp/apt-cache.tar
+        key: ${{ runner.os }}-apt-${{ steps.prep.outputs.apt_hash }}
+        restore-keys: ${{ runner.os }}-apt-
+
+    - name: 'Install OBS Studio and plugins'
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: |
+        set -e
+        pkgs=($(cat '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt'))
+        if test -f '/tmp/apt-cache.tar'; then
+          (cd /var/cache/apt/archives && sudo tar xf '/tmp/apt-cache.tar')
+        fi
+        sudo add-apt-repository -y ppa:obsproject/obs-studio
+        sudo add-apt-repository -y ppa:norihiro/plugins-for-obs-studio
+        sudo apt update
+        if ${{ steps.apt-cache.outputs.cache-hit != 'true' }}; then
+          sudo apt install -y --download-only "${pkgs[@]}"
+          (cd /var/cache/apt/archives && tar cf '/tmp/apt-cache.tar' *.deb)
+        fi
+        sudo apt install -y "${pkgs[@]}"
+
+    - name: 'Save apt cache'
+      if: ${{ runner.os == 'Linux' && steps.apt-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: /tmp/apt-cache.tar
+        key: ${{ runner.os }}-apt-${{ steps.prep.outputs.apt_hash }}
+
+    - name: 'Run the first-time wizard'
+      env:
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        set -e
+
+        plugins_args=(${{ inputs.obs-plugins }})
+        if (( ${#plugins_args[@]} > 0 )); then
+          plugins_args=(--plugins "${plugins_args[@]}")
+        fi
+
+        if test -n "${{ inputs.first-time-log }}"; then
+          args=(--logs "${{ inputs.first-time-log }}")
+        else
+          args=()
+        fi
+
+        python -m onsdriver.firsttime \
+          "${plugins_args[@]}" \
+          "${args[@]}" \
+          --size "${{ inputs.graphics-size }}" \
+          --save "${{ inputs.config-directory }}"
+
+    - name: 'Save plugin cache'
+      if: ${{ runner.os != 'Linux' && steps.onsdriver-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: '.onsdriver-cache'
+        key: ${{ runner.os }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
