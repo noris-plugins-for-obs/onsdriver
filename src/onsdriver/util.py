@@ -2,6 +2,7 @@
 This module provides useful functions when testing with obs-studio.
 '''
 
+import os.path
 import time
 
 class RetryAttempt:
@@ -46,3 +47,13 @@ def retry(timeout, each_wait=0.1, error_msg=None):
         count -= 1
 
     raise TimeoutError(attempt.error_msg)
+
+def ignore_directory(path):
+    '''Create .gitignore file to ignore the directory
+    :param path:  Path of the directory to be ignored
+    '''
+    ignore_path = f'{path}/.gitignore'
+    if os.path.exists(ignore_path):
+        return
+    with open(ignore_path, 'w', encoding='ascii') as fw:
+        fw.write('*\n')

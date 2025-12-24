@@ -7,6 +7,7 @@ import shutil
 import sys
 import subprocess
 import zipfile
+from onsdriver import util
 from onsdriver._ghutil import download_asset_with_file_re
 
 
@@ -22,6 +23,7 @@ def _extract(pkg_path, destination):
             shutil.copytree(mount_points[0], destination, symlinks=True)
     else:
         subprocess.run(['7z', 'x', '-o'+destination, pkg_path], check=True)
+    util.ignore_directory(destination)
 
 def install_obs(destination='./obs-studio', selector_re=None, info_only=False):
     '''Download OBS Studio from GitHub release and install it.

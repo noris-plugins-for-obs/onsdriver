@@ -9,6 +9,7 @@ import os.path
 import re
 import sys
 import urllib.request
+from onsdriver import util
 
 _DOWNLOAD_CACHE_DIR = '.onsdriver-cache'
 
@@ -71,6 +72,8 @@ def _download_gh_asset(asset, force_download=False):
         path = f'{_DOWNLOAD_CACHE_DIR}/{url_digest}/{name}'
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    util.ignore_directory(_DOWNLOAD_CACHE_DIR)
+
     if not os.path.exists(path) or force_download:
         with _gh_urlopen(url) as res:
             with open(path, 'wb') as fw:
