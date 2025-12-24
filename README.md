@@ -36,6 +36,28 @@ This script will
 
 #### Run your tests
 
+Put test code under a directory `test-onsdriver` and use `unittest` to test them.
+```sh
+python -m unittest discover test-onsdriver/
+```
+
+Example code is available under `test-example`.
+
+### Using the action on GitHub
+
+We provide an action for GitHub workflows.
+```yaml
+      - name: 'Setup onsdriver'
+        uses: noris-plugins-for-obs/onsdriver@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          obs-plugins: |
+            ${{ runner.os == 'Linux' ? '' : 'build/' }}
+      - name: 'Test with onsdriver'
+        run: |
+          python -m unittest discover test-onsdriver/
+```
 
 ### Environment variables
 
