@@ -43,6 +43,7 @@ This script will
 | ---- | ------- |
 | `HOME` | Home directory to set the configuration directory for Linux and macOS. |
 | `AppData` | AppData directory to set the configuration directory for Windows. |
+| `ProgramData` | ProgramData directory to extract plugins for Windows. |
 | `XDG_CONFIG_HOME` | Optionally overwrites the configuration directory derived from `HOME` directory for Linux. |
 | `OBS_EXEC` | Optionally configures path to the OBS Studio executable file. |
 | `GITHUB_TOKEN` | Optionally uses this token to download plugin from GitHub. |
