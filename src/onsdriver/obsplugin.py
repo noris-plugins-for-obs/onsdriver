@@ -40,6 +40,8 @@ elif sys.platform == 'win32':
         return download_asset_with_file_re(repo_name, r'.*[Ww]indows.*\.zip', **kwargs)
 
     def _install_plugin(filename):
+        if filename.endswith('.exe'):
+            return onsdriver._plugin_install_win.install_plugin_windows_exe(filename)
         if filename.endswith('.zip'):
             return onsdriver._plugin_install_win.install_plugin_windows_zip(filename)
         raise ValueError(f'Unknown type to install: {filename}')

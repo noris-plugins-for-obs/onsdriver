@@ -3,6 +3,7 @@
 import os
 import os.path
 import re
+import subprocess
 import zipfile
 
 from onsdriver import obsexec
@@ -44,3 +45,15 @@ def install_plugin_windows_zip(filename):
         z.extractall(dirname)
         for a in z.namelist():
             _INSTALLED_WINDOWS_FILES.add(dirname + '/' + a)
+
+def install_plugin_windows_exe(filename):
+    '''
+    Install an EXE plugin for Windows.
+    :param filename:  file name on this system.
+    '''
+
+    cmd = [
+            filename,
+            '/verysilent',
+    ]
+    subprocess.run(cmd, check=True)
