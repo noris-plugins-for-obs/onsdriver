@@ -11,6 +11,7 @@ import tempfile
 import time
 import obsws_python
 from onsdriver import obsconfig, obsui, util
+from onsdriver.xvfb_run import xvfb_run
 
 _WAIVED_ERRORS_RE_LIST = (
     r'error: Failed to rename basic scene collection file:', # first time
@@ -102,7 +103,7 @@ class OBSExec:
             proc_cwd = None
             cmd = [self.exec_path]
             if 'DISPLAY' not in os.environ or not os.environ['DISPLAY']:
-                cmd = ['xvfb-run', '-s', '-screen 0 1080x768x24'] + cmd
+                xvfb_run()
         elif sys.platform == 'win32':
             proc_cwd = os.path.dirname(self.exec_path)
             cmd = [os.path.abspath(self.exec_path)]
