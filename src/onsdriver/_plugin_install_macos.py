@@ -2,7 +2,6 @@
 
 import os
 import subprocess
-import tempfile
 import zipfile
 
 def install_plugin_macos_zip(filename):
@@ -24,10 +23,8 @@ def install_plugin_macos_pkg(filename):
     dirname = os.environ['HOME'] + '/Library/Application Support/obs-studio/plugins/'
     os.makedirs(dirname, exist_ok=True)
 
-    # The command 'sudo installer -pkg filename -target $HOME' cannot install to home but root.
-    with tempfile.NamedTemporaryFile(suffix='.cpio') as t:
-        res = subprocess.run(['7z', 'x', '-so', filename], check=True, capture_output=True)
-        t.file.write(res.stdout)
-        t.file.close()
-
-        subprocess.run(['7z', 'x', '-o'+os.environ['HOME'], t.name], check=True)
+    subprocess.run([
+        'installer',
+        '-pkg', filename,
+        '-target', 'CurrentUserHomeDirectory',
+        ], check=True)
