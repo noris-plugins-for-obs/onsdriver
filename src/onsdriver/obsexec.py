@@ -119,6 +119,17 @@ class OBSExec:
                 cwd = proc_cwd,
         )
 
+        try:
+            self._run_ensure_startup()
+        except Exception as e:
+            if self.proc_obs.poll():
+                print(f'OBS process exit with code {self.proc_obs.returncode} during startup')
+            self._tmp_stderr.seek(0)
+            for line in self._tmp_stderr.read().decode('utf-8').split('\n'):
+                print(line)
+            raise e
+
+    def _run_ensure_startup(self):
         # Wait startup
         # macOS: mac-avcapture-legacy takes up to 5 seconds.
         # Windows: Sometimes starting EXE takes 10 seconds.
@@ -240,6 +251,9 @@ class OBSExec:
             return
         exit_code = self.proc_obs.wait()
         if exit_code != 0:
+            self._tmp_stderr.seek(0)
+            for line in self._tmp_stderr.read().decode('utf-8').split('\n'):
+                print(line)
             raise OSError(f'OBS exit with code {exit_code}')
 
         if self._tmp_stderr:
