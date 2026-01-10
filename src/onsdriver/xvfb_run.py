@@ -3,6 +3,7 @@ Run Xvfb
 '''
 
 import tempfile
+import time
 import os
 import os.path
 import subprocess
@@ -59,6 +60,7 @@ class XvfbRun:
                 stdout = subprocess.DEVNULL,
                 stderr = subprocess.DEVNULL,
         )
+        time.sleep(1)
 
         os.environ['DISPLAY'] = f':{num}'
         _xauth_add(num)
