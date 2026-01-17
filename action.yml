@@ -16,6 +16,11 @@ inputs:
     required: false
     default: ''
     type: string
+  obs-version:
+    description: 'Condition for OBS Studio version'
+    required: false
+    default: ''
+    type: string
   obs-plugins:
     description: 'Additional plugins to install'
     required: false
@@ -70,11 +75,18 @@ runs:
           if (( ${#plugins_args[@]} > 0 )); then
             plugins_args=(--plugins "${plugins_args[@]}")
           fi
-          {
-            python -m onsdriver.obsinstall --info-only
-            python -m onsdriver.firsttime "${plugins_args[@]}" --info-only
-          } > onsdriver-info.txt
-          hash=$(sha256sum onsdriver-info.txt | cut -f1 -d' ')
+          if test -n '${{ inputs.obs-version }}'; then
+            obs_version_arg=(--version-specs '${{ inputs.obs-version }}')
+          else
+            obs_version_arg=()
+          fi
+          python -m onsdriver.obsinstall "${obs_version_arg[@]}" --info-only > onsdriver-obs-info.txt
+          obs_version="$(jq -r '.tag_name' < onsdriver-obs-info.txt)"
+          if test -n "$obs_version"; then
+            plugins_args=("${plugins_args[@]}" --obs "$obs_version")
+          fi
+          python -m onsdriver.firsttime "${plugins_args[@]}" --info-only > onsdriver-plugins-info.txt
+          hash=$(cat onsdriver-obs-info.txt onsdriver-plugins-info.txt | sha256sum - | cut -f1 -d' ')
           echo "onsdriver_hash=$hash" >> $GITHUB_OUTPUT
         fi
 
@@ -93,7 +105,13 @@ runs:
       env:
         GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
       run: |
-        python -m onsdriver.obsinstall
+        set -e
+        if test -n '${{ inputs.obs-version }}'; then
+          obs_version_arg=(--version-specs '${{ inputs.obs-version }}')
+        else
+          obs_version_arg=()
+        fi
+        python -m onsdriver.obsinstall "${obs_version_arg[@]}"
 
     - name: 'Restore apt cache'
       if: ${{ runner.os == 'Linux' }}
@@ -145,6 +163,13 @@ runs:
           args=(--logs "${{ inputs.first-time-log }}")
         else
           args=()
+        fi
+
+        if test -f onsdriver-obs-info.txt; then
+          obs_version="$(jq -r '.tag_name' < onsdriver-obs-info.txt)"
+          if test -n "$obs_version"; then
+            args=("${args[@]}" --obs "$obs_version")
+          fi
         fi
 
         python -m onsdriver.firsttime \
