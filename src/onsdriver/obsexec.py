@@ -145,9 +145,9 @@ class OBSExec:
                     res = ui.request('widget-list', {})
                     if res['visible']:
                         break
-                except obsws_python.error.OBSSDKRequestError:
-                    # Ignore error code: 207 message: OBS is not ready to perform the request.
-                    pass
+                except obsws_python.error.OBSSDKRequestError as e:
+                    if e.code != 207: # OBS is not ready to perform the request.
+                        raise e
 
     def _get_obsws_passwd(self):
         cfg = self.config.get_obsws_cfg()
