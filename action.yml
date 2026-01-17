@@ -16,6 +16,11 @@ inputs:
     required: false
     default: ''
     type: string
+  obs-version:
+    description: 'Condition for OBS Studio version'
+    required: false
+    default: ''
+    type: string
   obs-plugins:
     description: 'Additional plugins to install'
     required: false
@@ -70,12 +75,18 @@ runs:
           if (( ${#plugins_args[@]} > 0 )); then
             plugins_args=(--plugins "${plugins_args[@]}")
           fi
-          {
-            python -m onsdriver.obsinstall --info-only
-            python -m onsdriver.firsttime "${plugins_args[@]}" --info-only
-          } > onsdriver-info.txt
-          hash=$(sha256sum onsdriver-info.txt | cut -f1 -d' ')
+          python -m onsdriver.obsinstall \
+            --version-specs '${{ inputs.obs-version }}' \
+            --info-only > onsdriver-obs-info.txt
+          obs_version="$(jq -r '.tag_name' < onsdriver-obs-info.txt)"
+          if test -n "$obs_version"; then
+            plugins_args=("${plugins_args[@]}" --obs "$obs_version")
+          fi
+          python -m onsdriver.firsttime "${plugins_args[@]}" --info-only > onsdriver-plugins-info.txt
+          hash=$(cat onsdriver-obs-info.txt onsdriver-plugins-info.txt | sha256sum - | cut -f1 -d' ')
           echo "onsdriver_hash=$hash" >> $GITHUB_OUTPUT
+          echo "obs_version=$obs_version" >> $GITHUB_OUTPUT
+          rm -f onsdriver-obs-info.txt onsdriver-plugins-info.txt
         fi
 
     - name: 'Restore ONS Driver cache'
@@ -93,7 +104,8 @@ runs:
       env:
         GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
       run: |
-        python -m onsdriver.obsinstall
+        python -m onsdriver.obsinstall \
+          --version-specs '${{ inputs.obs-version }}'
 
     - name: 'Restore apt cache'
       if: ${{ runner.os == 'Linux' }}
@@ -150,6 +162,7 @@ runs:
         python -m onsdriver.firsttime \
           "${plugins_args[@]}" \
           "${args[@]}" \
+          --obs '${{ steps.prep.outputs.obs_version }}' \
           --size "${{ inputs.graphics-size }}" \
           --save "${{ inputs.config-directory }}"
 
