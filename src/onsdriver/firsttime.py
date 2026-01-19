@@ -190,12 +190,16 @@ def main():
     )
 
     if args.run_again:
+        obs_cfg = None
         try:
             obs = obsexec.OBSExec(run=True)
+            obs_cfg = obs.config
             obs.wait()
         finally:
             if args.logs:
-                _move_logs(obs.config, dstdir=args.logs, prefix='firsttime-again-')
+                if not obs_cfg:
+                    obs_cfg = obsconfig.OBSConfig()
+                _move_logs(obs_cfg, dstdir=args.logs, prefix='firsttime-again-')
 
 if __name__ == '__main__':
     main()
