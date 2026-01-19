@@ -138,6 +138,9 @@ runs:
           sudo apt install -y --download-only "${pkgs[@]}"
           (cd /var/cache/apt/archives && tar cf '/tmp/apt-cache.tar' *.deb)
         fi
+        sudo apt install -y xvfb
+        python -m onsdriver.xvfb_run >> $GITHUB_ENV
+
         sudo apt install -y "${pkgs[@]}"
 
     - name: 'Save apt cache'
