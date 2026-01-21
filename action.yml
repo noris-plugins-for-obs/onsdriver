@@ -75,12 +75,9 @@ runs:
           if (( ${#plugins_args[@]} > 0 )); then
             plugins_args=(--plugins "${plugins_args[@]}")
           fi
-          if test -n '${{ inputs.obs-version }}'; then
-            obs_version_arg=(--version-specs '${{ inputs.obs-version }}')
-          else
-            obs_version_arg=()
-          fi
-          python -m onsdriver.obsinstall "${obs_version_arg[@]}" --info-only > onsdriver-obs-info.txt
+          python -m onsdriver.obsinstall \
+            --version-specs '${{ inputs.obs-version }}' \
+            --info-only > onsdriver-obs-info.txt
           obs_version="$(jq -r '.tag_name' < onsdriver-obs-info.txt)"
           if test -n "$obs_version"; then
             plugins_args=("${plugins_args[@]}" --obs "$obs_version")
@@ -88,6 +85,8 @@ runs:
           python -m onsdriver.firsttime "${plugins_args[@]}" --info-only > onsdriver-plugins-info.txt
           hash=$(cat onsdriver-obs-info.txt onsdriver-plugins-info.txt | sha256sum - | cut -f1 -d' ')
           echo "onsdriver_hash=$hash" >> $GITHUB_OUTPUT
+          echo "obs_version=$obs_version" >> $GITHUB_OUTPUT
+          rm -f onsdriver-obs-info.txt onsdriver-plugins-info.txt
         fi
 
     - name: 'Restore ONS Driver cache'
@@ -105,13 +104,8 @@ runs:
       env:
         GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
       run: |
-        set -e
-        if test -n '${{ inputs.obs-version }}'; then
-          obs_version_arg=(--version-specs '${{ inputs.obs-version }}')
-        else
-          obs_version_arg=()
-        fi
-        python -m onsdriver.obsinstall "${obs_version_arg[@]}"
+        python -m onsdriver.obsinstall \
+          --version-specs '${{ inputs.obs-version }}'
 
     - name: 'Restore apt cache'
       if: ${{ runner.os == 'Linux' }}
@@ -168,16 +162,10 @@ runs:
           args=()
         fi
 
-        if test -f onsdriver-obs-info.txt; then
-          obs_version="$(jq -r '.tag_name' < onsdriver-obs-info.txt)"
-          if test -n "$obs_version"; then
-            args=("${args[@]}" --obs "$obs_version")
-          fi
-        fi
-
         python -m onsdriver.firsttime \
           "${plugins_args[@]}" \
           "${args[@]}" \
+          --obs '${{ steps.prep.outputs.obs_version }}' \
           --size "${{ inputs.graphics-size }}" \
           --save "${{ inputs.config-directory }}"
 
