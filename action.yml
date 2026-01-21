@@ -141,6 +141,7 @@ runs:
         python -m onsdriver.xvfb_run >> $GITHUB_ENV
 
         sudo apt install -y "${pkgs[@]}"
+        sudo apt autoclean
 
     - name: 'Save apt cache'
       if: ${{ runner.os == 'Linux' && steps.apt-cache.outputs.cache-hit != 'true' }}
