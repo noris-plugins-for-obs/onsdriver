@@ -69,8 +69,16 @@ runs:
           for p in "${plugins_args[@]}"; do
             echo "$p" >> '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt'
           done
-          hash=$(cat /etc/issue '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt' | sha256sum - | cut -f1 -d' ')
-          echo "apt_hash=$hash" >> $GITHUB_OUTPUT
+          sudo add-apt-repository -y ppa:obsproject/obs-studio
+          sudo add-apt-repository -y ppa:norihiro/plugins-for-obs-studio
+          sudo apt update
+          cat '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt' |\
+            sudo xargs apt info > /tmp/onsdriver-apt-info.out
+          echo "apt_hash=$(
+            awk '/^Package:/{p=$2}/^Version:/{print(p, $2)}' /tmp/onsdriver-apt-info.out |\
+            sha256sum - | cut -f1 -d' ')" >> $GITHUB_OUTPUT
+          awk '/^Package:/{p=$2} p=="obs-studio"&&/^Version:/{gsub("[^0-9.].*", "", $2); print("obs_version="$2)}' \
+            /tmp/onsdriver-apt-info.out >> $GITHUB_OUTPUT
         else
           if (( ${#plugins_args[@]} > 0 )); then
             plugins_args=(--plugins "${plugins_args[@]}")
@@ -125,9 +133,6 @@ runs:
         if test -f '/tmp/apt-cache.tar'; then
           (cd /var/cache/apt/archives && sudo tar xf '/tmp/apt-cache.tar')
         fi
-        sudo add-apt-repository -y ppa:obsproject/obs-studio
-        sudo add-apt-repository -y ppa:norihiro/plugins-for-obs-studio
-        sudo apt update
         if ${{ steps.apt-cache.outputs.cache-hit != 'true' }}; then
           sudo apt install -y --download-only "${pkgs[@]}"
           (cd /var/cache/apt/archives && tar cf '/tmp/apt-cache.tar' *.deb)
