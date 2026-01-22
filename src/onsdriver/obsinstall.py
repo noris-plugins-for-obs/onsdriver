@@ -3,6 +3,7 @@ Download and extract OBS Studio from GitHub
 '''
 
 import argparse
+import platform
 import shutil
 import sys
 import subprocess
@@ -34,7 +35,13 @@ def install_obs(
 
     if not selector_re:
         if sys.platform == 'darwin':
-            selector_re = r'^(OBS-Studio-.*-macOS-Apple.dmg|obs-studio-[0-9.]*-macos-arm64.dmg)$'
+            m = platform.machine()
+            if m == 'arm64':
+                selector_re = r'^(OBS-Studio|obs-studio)-.*-(macOS|macos)-(Apple|arm64).dmg$'
+            elif m == 'x86_64':
+                selector_re = r'^(OBS-Studio|obs-studio)-.*-(macOS|macos)-(Intel|x86_64).dmg$'
+            else:
+                raise NotImplementedError(f'Unknown machine: {m}')
         elif sys.platform == 'win32':
             selector_re = r'^OBS-Studio-.*-Windows-x64.zip$'
         else:
