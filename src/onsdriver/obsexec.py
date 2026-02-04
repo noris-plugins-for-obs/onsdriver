@@ -199,6 +199,11 @@ class OBSExec:
                 attempt.set_error(str(e))
         raise NotImplementedError()
 
+    def get_obsws_event(self, subs=0):
+        'Return EventClient object'
+        pw = self._get_obsws_passwd()
+        return obsws_python.EventClient(host='localhost', port=4455, password=pw, subs=subs)
+
     def close_ws(self):
         'Close the last websocket client to prepare shutdown'
         if self._obsws:
