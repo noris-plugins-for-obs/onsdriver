@@ -87,6 +87,7 @@ class OBSExec:
         self.proc_obs = None
         self._obsws = None
         self._tmp_stderr = None
+        self._waive_errors = []
 
         if enable_obsws:
             config.enable_obsws()
@@ -244,6 +245,28 @@ class OBSExec:
             return self.wait()
         return None
 
+    def waive_error(self, waiver_re=None, waiver=None):
+        '''Waive error lines in log file
+
+        :param waiver_re:  Regex to specify line to be excluded.
+        :param waiver:     String to specify line to be excluded.
+        '''
+        if waiver:
+            self._waive_errors.append(waiver)
+        if waiver_re:
+            self._waive_errors.append(re.compile(waiver_re))
+
+    def _is_waived(self, line):
+        if _WAIVED_ERRORS_RE.match(line):
+            return True
+        for w in self._waive_errors:
+            if isinstance(w, str):
+                if line == w:
+                    return True
+            elif w.match(line):
+                return True
+        return False
+
     def wait(self, check_error=True):
         'Wait OBS to exit'
         self.close_ws()
@@ -261,7 +284,7 @@ class OBSExec:
             self._tmp_stderr.seek(0)
             has_error = False
             for line in self._tmp_stderr.read().decode('utf-8').split('\n'):
-                if _WAIVED_ERRORS_RE.match(line):
+                if self._is_waived(line):
                     continue
                 if line.startswith('error: '):
                     has_error = True
