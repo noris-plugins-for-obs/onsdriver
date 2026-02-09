@@ -3,6 +3,7 @@ Download and install plugin
 '''
 
 import argparse
+import platform
 import os.path
 import re
 import sys
@@ -22,7 +23,15 @@ if sys.platform == 'darwin':
     import onsdriver._plugin_install_macos
 
     def _download_plugin(repo_name, **kwargs):
-        return download_asset_with_file_re(repo_name, r'.*macos.*\.zip', **kwargs)
+        file_re = r'.*macos.*\.zip'
+        if 'text-pthread' in repo_name:
+            m = platform.machine()
+            if m == 'arm64':
+                file_re = r'.*macos.*(arm64|universal)\.zip'
+            elif m == 'x86_64':
+                file_re = r'.*macos.*(x86_64|universal)\.zip'
+
+        return download_asset_with_file_re(repo_name, file_re, **kwargs)
 
     def _install_plugin(filename):
         if _is_cmake_build_dir(filename):
