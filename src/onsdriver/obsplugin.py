@@ -3,11 +3,11 @@ Download and install plugin
 '''
 
 import argparse
-import platform
 import os.path
 import re
 import sys
 import subprocess
+import onsdriver.platform
 from onsdriver._ghutil import download_asset_with_file_re
 
 
@@ -18,18 +18,20 @@ def _install_plugin_cmake_build(path):
     subprocess.run(['cmake', '--install', path], check=True)
 
 
-if sys.platform == 'darwin':
+if onsdriver.platform.os_is_macos():
     # pylint: disable=protected-access
     import onsdriver._plugin_install_macos
 
     def _download_plugin(repo_name, **kwargs):
         file_re = r'.*macos.*\.zip'
         if 'text-pthread' in repo_name:
-            m = platform.machine()
-            if m == 'arm64':
+            a = onsdriver.platform.arch()
+            if a == onsdriver.platform.ARCH_ARM64:
                 file_re = r'.*macos.*(arm64|universal)\.zip'
-            elif m == 'x86_64':
+            elif a == onsdriver.platform.ARCH_X86_64:
                 file_re = r'.*macos.*(x86_64|universal)\.zip'
+            else:
+                raise NotImplementedError(f'Unknown architecture: {a}')
 
         return download_asset_with_file_re(repo_name, file_re, **kwargs)
 
@@ -42,7 +44,7 @@ if sys.platform == 'darwin':
             return onsdriver._plugin_install_macos.install_plugin_macos_pkg(filename)
         raise ValueError(f'Unknown type to install: {filename}')
 
-elif sys.platform == 'win32':
+elif onsdriver.platform.os_is_windows():
     # pylint: disable=protected-access
     import onsdriver._plugin_install_win
 
@@ -56,7 +58,7 @@ elif sys.platform == 'win32':
             return onsdriver._plugin_install_win.install_plugin_windows_zip(filename)
         raise ValueError(f'Unknown type to install: {filename}')
 
-elif sys.platform == 'linux':
+elif onsdriver.platform.os_is_linux():
     # On Linux, user need to install into the system, hence let's ignore to install.
     # pylint: disable=unused-argument
     def _download_plugin(repo_name, **kwargs):
@@ -66,9 +68,9 @@ elif sys.platform == 'linux':
 
 else:
     def _download_plugin(repo_name, **kwargs):
-        raise NotImplementedError(f'_download_plugin on {sys.platform}')
+        raise NotImplementedError(f'_download_plugin on {onsdriver.platform.os_name()}')
     def _install_plugin(filename):
-        raise NotImplementedError(f'_install_plugin on {sys.platform}')
+        raise NotImplementedError(f'_install_plugin on {onsdriver.platform.os_name()}')
 
 def _version(s):
     def _safe_int(s):

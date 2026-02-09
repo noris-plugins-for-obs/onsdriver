@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import time
 import obsws_python
+import onsdriver.platform
 from onsdriver import obsconfig, obsui, util
 from onsdriver.xvfb_run import xvfb_run
 
@@ -29,12 +30,12 @@ _WAIVED_ERRORS_RE_LIST = (
 _WAIVED_ERRORS_RE = re.compile('(' + '|'.join(_WAIVED_ERRORS_RE_LIST) + ')')
 
 def _normalize_exec_path(path):
-    if sys.platform == 'darwin':
+    if onsdriver.platform.os_is_macos():
         candidates = (
                 path + '/Contents/MacOS/OBS',
                 path,
         )
-    elif sys.platform == 'win32':
+    elif onsdriver.platform.os_is_windows():
         candidates = (
                 path + '/bin/64bit/obs64.exe',
                 path,
@@ -50,28 +51,28 @@ def get_exec_path():
     'Return the executable file path of OBS'
     if 'OBS_EXEC' in os.environ:
         return _normalize_exec_path(os.environ['OBS_EXEC'])
-    if sys.platform == 'linux':
+    if onsdriver.platform.os_is_linux():
         return 'obs'
-    if sys.platform == 'darwin':
+    if onsdriver.platform.os_is_macos():
         paths = (
                 'obs-studio/OBS.app',
                 'obs-studio/build_macos/frontend/RelWithDebInfo/OBS.app',
                 '../obs-studio/build_macos/frontend/RelWithDebInfo/OBS.app',
         )
-    elif sys.platform == 'win32':
+    elif onsdriver.platform.os_is_windows():
         paths = (
                 'obs-studio',
                 '../obs-studio',
         )
     else:
-        raise NotImplementedError(f'Not supported platform: {sys.platform}')
+        raise NotImplementedError(f'Not supported platform: {onsdriver.platform.os_name()}')
 
     for path in paths:
         path = _normalize_exec_path(path)
         if os.path.isfile(path):
             return os.path.abspath(path)
 
-    raise ValueError(f'Cannot find obs-studio executable path for {sys.platform}')
+    raise ValueError(f'Cannot find obs-studio executable path for {onsdriver.platform.os_name()}')
 
 class OBSExec:
     'Class to run OBS Studio'
@@ -101,12 +102,12 @@ class OBSExec:
 
         self.config.remove_logs()
 
-        if sys.platform == 'linux':
+        if onsdriver.platform.os_is_linux():
             proc_cwd = None
             cmd = [self.exec_path]
             if 'DISPLAY' not in os.environ or not os.environ['DISPLAY']:
                 xvfb_run()
-        elif sys.platform == 'win32':
+        elif onsdriver.platform.os_is_windows():
             proc_cwd = os.path.dirname(self.exec_path)
             cmd = [os.path.abspath(self.exec_path)]
         else:
@@ -137,7 +138,7 @@ class OBSExec:
         # macOS: mac-avcapture-legacy takes up to 5 seconds.
         # Windows: Sometimes starting EXE takes 10 seconds.
         time.sleep(0.2)
-        if sys.platform == 'win32':
+        if onsdriver.platform.os_is_windows():
             timeout = 25
             wait = 0.5
         else:
@@ -191,7 +192,7 @@ class OBSExec:
             try:
                 pw = self._get_obsws_passwd()
                 self._obsws = obsws_python.ReqClient(host='localhost', port=4455, password=pw)
-                if sys.platform == 'linux' and attempt.count >= 2:
+                if onsdriver.platform.os_is_linux() and attempt.count >= 2:
                     print(f'Info: Succeeded to connect websocket after {attempt}.')
                     sys.stdout.flush()
                 return self._obsws

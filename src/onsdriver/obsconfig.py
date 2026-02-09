@@ -8,25 +8,25 @@ import os.path
 import random
 import shutil
 import string
-import sys
 import tempfile
 import json
 import copy
+import onsdriver.platform
 
 _OBSWS_CONFIG_PATH = '/plugin_config/obs-websocket/config.json'
 
 def _get_config_dir():
-    if sys.platform == 'linux':
+    if onsdriver.platform.os_is_linux():
         try:
             return os.environ['XDG_CONFIG_HOME'] + '/obs-studio'
         except KeyError:
             return os.environ['HOME'] + '/.config/obs-studio'
-    elif sys.platform == 'darwin':
+    elif onsdriver.platform.os_is_macos():
         return os.environ['HOME'] + '/Library/Application Support/obs-studio'
-    elif sys.platform == 'win32':
+    elif onsdriver.platform.os_is_windows():
         return os.environ['AppData'] + '/obs-studio'
     else:
-        raise NotImplementedError(f'Not supported platform: f{sys.platform}')
+        raise NotImplementedError(f'Not supported platform: f{onsdriver.platform.os_name()}')
 
 def _generate_password():
     cand = string.ascii_lowercase + string.digits + string.ascii_uppercase

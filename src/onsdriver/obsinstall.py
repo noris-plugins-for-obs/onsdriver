@@ -3,11 +3,10 @@ Download and extract OBS Studio from GitHub
 '''
 
 import argparse
-import platform
 import shutil
-import sys
 import subprocess
 import zipfile
+import onsdriver.platform
 from onsdriver import util
 from onsdriver._ghutil import download_asset_with_file_re
 
@@ -18,12 +17,13 @@ def _extract(pkg_path, destination):
     if pkg_path.endswith('.zip'):
         with zipfile.ZipFile(pkg_path) as z:
             z.extractall(destination)
-    elif pkg_path.endswith('.dmg') and sys.platform == 'darwin':
-        import dmglib # pylint: disable=import-outside-toplevel,import-error
-        with dmglib.attachedDiskImage(pkg_path) as mount_points:
-            shutil.copytree(mount_points[0], destination, symlinks=True)
-    else:
-        subprocess.run(['7z', 'x', '-o'+destination, pkg_path], check=True)
+    elif pkg_path.endswith('.dmg'):
+        try:
+            import dmglib # pylint: disable=import-outside-toplevel,import-error
+            with dmglib.attachedDiskImage(pkg_path) as mount_points:
+                shutil.copytree(mount_points[0], destination, symlinks=True)
+        except ImportError:
+            subprocess.run(['7z', 'x', '-o'+destination, pkg_path], check=True)
     util.ignore_directory(destination)
 
 def install_obs(
@@ -34,18 +34,18 @@ def install_obs(
     '''
 
     if not selector_re:
-        if sys.platform == 'darwin':
-            m = platform.machine()
-            if m == 'arm64':
+        if onsdriver.platform.os_is_macos():
+            a = onsdriver.platform.arch()
+            if a == onsdriver.platform.ARCH_ARM64:
                 selector_re = r'^(OBS-Studio|obs-studio)-.*-(macOS|macos)-(Apple|arm64).dmg$'
-            elif m == 'x86_64':
+            elif a == onsdriver.platform.ARCH_X86_64:
                 selector_re = r'^(OBS-Studio|obs-studio)-.*-(macOS|macos)-(Intel|x86_64).dmg$'
             else:
-                raise NotImplementedError(f'Unknown machine: {m}')
-        elif sys.platform == 'win32':
+                raise NotImplementedError(f'Unknown architecture: {a}')
+        elif onsdriver.platform.os_is_windows():
             selector_re = r'^OBS-Studio-.*-Windows-x64.zip$'
         else:
-            raise NotImplementedError(f'Not supported platform: {sys.platform}')
+            raise NotImplementedError(f'Not supported platform: {onsdriver.platform.os_name()}')
 
     pkg_path = download_asset_with_file_re(
             _OBS_REPO, selector_re, info_only=info_only, version_specs=version_specs)
