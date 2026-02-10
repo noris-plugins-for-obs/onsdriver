@@ -141,6 +141,10 @@ class OBSExec:
         if onsdriver.platform.os_is_windows():
             timeout = 25
             wait = 0.5
+        elif onsdriver.platform.os_is_macos() and onsdriver.platform.arch() == 'x86_64':
+            # Using Rosetta2, it took 20 seconds on M2 macbook.
+            timeout = 60
+            wait = 0.1
         else:
             timeout = 10
             wait = 0.1
