@@ -198,8 +198,8 @@ class OBSConfig:
             return f'{self.path}/basic/scenes/{name}.json'
         if self.get_last_version() < (31, 0, 0):
             fname = self.get_global_cfg('Basic')['SceneCollectionFile']
-        else:
-            fname = self.get_user_cfg('Basic')['SceneCollectionFile']
+            return f'{self.path}/basic/scenes/{fname}.json'
+        fname = self.get_user_cfg('Basic')['SceneCollectionFile']
         return f'{self.path}/basic/scenes/{fname}'
 
     def get_obsws_cfg(self):
