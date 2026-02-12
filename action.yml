@@ -177,12 +177,19 @@ runs:
           args=()
         fi
 
-        python -m onsdriver.firsttime \
-          "${plugins_args[@]}" \
-          "${args[@]}" \
-          --obs '${{ steps.prep.outputs.obs_version }}' \
-          --size "${{ inputs.graphics-size }}" \
-          --save "${{ inputs.config-directory }}"
+        n=2
+        until python -m onsdriver.firsttime \
+            "${plugins_args[@]}" \
+            "${args[@]}" \
+            --obs '${{ steps.prep.outputs.obs_version }}' \
+            --size "${{ inputs.graphics-size }}" \
+            --save "${{ inputs.config-directory }}"; do
+          n=$((n - 1))
+          if (( n == 0 )); then
+            exit 1
+          fi
+          sleep 3
+        done
 
     - name: 'Save plugin cache'
       if: ${{ runner.os != 'Linux' && steps.onsdriver-cache.outputs.cache-hit != 'true' }}
