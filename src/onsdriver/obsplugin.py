@@ -108,15 +108,18 @@ class _FilterPlugins:
 
         return [a for a in assets if 'obs_ver' not in a or a['obs_ver'] == best_obs_ver]
 
-def download_plugin(repo_name, info_only=False, obs=None):
+def download_plugin(repo_name, info_only=False, obs=None, include_prerelease=False):
     '''Download plugin from github.com
     :param repo_name:  Repository URL like "https://github.com/owner/repo"
     :param info_only:  Return asset information in JSON string without downloading the file.
     :param obs:        The version of OBS Studio.
+    :param include_prerelease:  Find the latest including release-candidate versions.
     :return:           Path to the downloaded file.
     '''
     f = _FilterPlugins(obs=obs)
-    return _download_plugin(repo_name, info_only=info_only, filter_cb=f.filter)
+    return _download_plugin(
+            repo_name, info_only=info_only, filter_cb=f.filter,
+            include_prerelease=include_prerelease)
 
 def install_plugin(filename):
     '''Install plugin
@@ -130,6 +133,7 @@ def _get_args():
                         help='Print the asset information and exit')
     parser.add_argument('--obs', action='store', default=None,
                         help='OBS Studio version')
+    parser.add_argument('--include-prerelease', action='store_true', default=False)
     parser.add_argument('names', nargs='+', default=[],
                         help='Repository URL like "https://github.com/owner/repo"')
     args = parser.parse_args()
@@ -146,7 +150,9 @@ def main():
         elif _is_cmake_build_dir(name):
             paths.append(name)
         elif name.startswith('http://') or name.startswith('https://'):
-            path = download_plugin(name, info_only=args.info_only, obs=args.obs)
+            path = download_plugin(
+                    name, info_only=args.info_only, obs=args.obs,
+                    include_prerelease=args.include_prerelease)
             paths.append(path)
         else:
             sys.stderr.write(f'Error: {name}: Unknown type.\n')

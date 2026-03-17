@@ -27,7 +27,8 @@ def _extract(pkg_path, destination):
     util.ignore_directory(destination)
 
 def install_obs(
-        destination='./obs-studio', selector_re=None, info_only=False, version_specs=None):
+        destination='./obs-studio', selector_re=None, info_only=False, version_specs=None,
+        include_prerelease=False):
     '''Download OBS Studio from GitHub release and install it.
     :param destination:  Destination to extract OBS Studio.
     :param selector_re:  Regular expression to select the file.
@@ -48,7 +49,8 @@ def install_obs(
             raise NotImplementedError(f'Not supported platform: {onsdriver.platform.os_name()}')
 
     pkg_path = download_asset_with_file_re(
-            _OBS_REPO, selector_re, info_only=info_only, version_specs=version_specs)
+            _OBS_REPO, selector_re, info_only=info_only, version_specs=version_specs,
+            include_prerelease=include_prerelease)
     if info_only:
         return pkg_path
 
@@ -62,6 +64,7 @@ def _get_args():
     parser.add_argument('--info-only', action='store_true', default=None,
                         help='Print the asset information and exit')
     parser.add_argument('--version-specs', action='store', default=None)
+    parser.add_argument('--include-prerelease', action='store_true', default=False)
     args = parser.parse_args()
     return args
 
@@ -70,7 +73,7 @@ def main():
     args = _get_args()
 
     ret = install_obs(destination=args.destination, info_only=args.info_only,
-                      version_specs=args.version_specs)
+                      version_specs=args.version_specs, include_prerelease=args.include_prerelease)
 
     if args.info_only:
         print(ret)

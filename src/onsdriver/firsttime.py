@@ -13,29 +13,32 @@ _REQUIRED_PLUGIN_URLS = (
         'https://github.com/noris-plugins-for-obs/shutdown-plugin',
 )
 
-def _download_plugins(additional_plugins, obs=None, info_only=False):
+def _download_plugins(additional_plugins, include_prerelease, obs=None, info_only=False):
     ret = []
 
     for plugin in _REQUIRED_PLUGIN_URLS:
-        ret.append(obsplugin.download_plugin(plugin, obs=obs, info_only=info_only))
+        ret.append(obsplugin.download_plugin(
+            plugin, obs=obs, info_only=info_only, include_prerelease=include_prerelease))
 
     if additional_plugins:
         for plugin in additional_plugins:
             if plugin.startswith('http://') or plugin.startswith('https://'):
-                ret.append(obsplugin.download_plugin(plugin, info_only=info_only))
+                ret.append(obsplugin.download_plugin(
+                    plugin, info_only=info_only, include_prerelease=include_prerelease))
             else:
                 ret.append(plugin)
 
     return ret
 
-def _prepare_config(obs, additional_plugins):
+def _prepare_config(obs, additional_plugins, include_prerelease):
     cfg = obsconfig.OBSConfig()
     cfg.remove_files()
     cfg.get_global_cfg('General')['EnableAutoUpdates'] = 'false'
     cfg.get_global_cfg('General')['MacOSPermissionsDialogLastShown'] = '65535'
     cfg.save_global_cfg()
 
-    for path in _download_plugins(obs=obs, additional_plugins=additional_plugins):
+    for path in _download_plugins(obs=obs, additional_plugins=additional_plugins,
+                                  include_prerelease=include_prerelease):
         obsplugin.install_plugin(path)
 
     return cfg
@@ -103,12 +106,13 @@ def _move_logs(cfg, dstdir, prefix):
 
 def run_firsttime(
         # pylint: disable=too-many-arguments
-        *, configure=True, run=True, lang=None, obs=None, additional_plugins=None, size=None,
-        save_dst=None, grab_png=None, logs=None):
+        *, configure=True, run=True, lang=None, obs=None, additional_plugins=None,
+        include_prerelease=False, size=None, save_dst=None, grab_png=None, logs=None):
     '''Run the first time wizard and configure
     '''
     if configure:
-        cfg = _prepare_config(obs=obs, additional_plugins=additional_plugins)
+        cfg = _prepare_config(obs=obs, additional_plugins=additional_plugins,
+                              include_prerelease=include_prerelease)
     else:
         cfg = obsconfig.OBSConfig()
 
@@ -141,6 +145,7 @@ def run_firsttime(
 
 
 def _get_args():
+    # pylint: disable=R0801
     parser = argparse.ArgumentParser()
     parser.add_argument('--configure', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--plugins', nargs='+', default=[],
@@ -149,6 +154,7 @@ def _get_args():
                         help='Print the asset information and exit')
     parser.add_argument('--obs', action='store', default=None,
                         help='OBS Studio version')
+    parser.add_argument('--include-prerelease', action='store_true', default=False)
     parser.add_argument('--run', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--save', action='store', default=None,
                         help='Path to save the configuration directory')
@@ -177,6 +183,7 @@ def main():
         paths = _download_plugins(
             obs = args.obs,
             additional_plugins = args.plugins,
+            include_prerelease=args.include_prerelease,
             info_only=True
         )
         for path in paths:
@@ -189,6 +196,7 @@ def main():
             lang = args.language,
             obs = args.obs,
             additional_plugins = args.plugins,
+            include_prerelease=args.include_prerelease,
             save_dst = args.save,
             size = args.size,
             grab_png = args.grab,

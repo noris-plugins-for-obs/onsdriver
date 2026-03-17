@@ -44,12 +44,16 @@ def _get_releases_url(repo_name):
         return f'https://api.github.com/repos/{m[2]}/releases'
     raise ValueError(f'Cannot get GitHub.com API URL for {repo_name}')
 
-def _select_asset_from_gh(repo_name, file_re, filter_cb=None, version_specs=None):
+def _select_asset_from_gh(
+        repo_name, file_re, filter_cb=None, version_specs=None, include_prerelease=False):
     if isinstance(file_re, str):
         file_re = re.compile(file_re)
 
-    if version_specs:
-        release_url = _latest_release_with_version(repo_name, version_specs)
+    if version_specs or include_prerelease:
+        release_url = _latest_release_with_version(
+                repo_name=repo_name, version_specs=version_specs,
+                include_prerelease=include_prerelease
+        )
     else:
         release_url = _get_release_url(repo_name)
 
@@ -152,24 +156,28 @@ def _list_releases(repo_name, include_prerelease=False):
 
         yield from releases
 
-def _latest_release_with_version(repo_name, version_specs):
+def _latest_release_with_version(repo_name, version_specs, include_prerelease):
     if isinstance(version_specs, str):
         version_specs = SpecifierSet(version_specs)
-    for rel in _list_releases(repo_name):
-        if version_specs.contains(rel['tag_name']):
+    for rel in _list_releases(repo_name, include_prerelease=include_prerelease):
+        if not version_specs or version_specs.contains(rel['tag_name']):
             return rel['url']
     raise ValueError(f'No tags matching {version_specs} in {repo_name}')
 
 def download_asset_with_file_re(
-        repo_name, file_re, filter_cb=None, info_only=False, version_specs=None):
+        # pylint: disable=too-many-arguments
+        repo_name, file_re, *, filter_cb=None, info_only=False, version_specs=None,
+        include_prerelease=False):
     '''Download an asset from GitHub release page
     :param repo_name:  Repository URL like "https://github.com/owner/repo" or a release URL
     :param file_re:    regex to select file to be downloaded
     :param filter_cb:  Callback function to filter assets
     :param version_specs:  Optional condition for version selection
+    :param include_prerelease:  Find the latest including release-candidate versions
     '''
     asset, release = _select_asset_from_gh(
-            repo_name, file_re, filter_cb=filter_cb, version_specs=version_specs)
+            repo_name, file_re, filter_cb=filter_cb, version_specs=version_specs,
+            include_prerelease=include_prerelease)
     if info_only:
         ret = {
                 'name': asset['name'],
@@ -189,6 +197,7 @@ def _get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--release-url', action='store_true', default=False)
     parser.add_argument('--list-releases', action='store_true', default=False)
+    parser.add_argument('--include-prerelease', action='store_true', default=False)
     parser.add_argument('repo', default=None)
     args = parser.parse_args()
     return args
@@ -202,8 +211,8 @@ def main():
         return
 
     if args.list_releases:
-        for rel in _list_releases(args.repo):
-            print(rel)
+        for rel in _list_releases(args.repo, include_prerelease=args.include_prerelease):
+            print(json.dumps(rel))
 
 if __name__ == '__main__':
     main()
