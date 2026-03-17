@@ -52,7 +52,7 @@ runs:
   steps:
     - name: 'Setup Python'
       if: ${{ inputs.setup-python }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ inputs.python-version }}
 
@@ -109,7 +109,7 @@ runs:
     - name: 'Restore ONS Driver cache'
       if: ${{ runner.os != 'Linux' }}
       id: onsdriver-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: '.onsdriver-cache'
         key: ${{ runner.os }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
@@ -127,7 +127,7 @@ runs:
     - name: 'Restore apt cache'
       if: ${{ runner.os == 'Linux' }}
       id: apt-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: /tmp/apt-cache.tar
         key: ${{ runner.os }}-apt-${{ steps.prep.outputs.apt_hash }}
@@ -154,7 +154,7 @@ runs:
 
     - name: 'Save apt cache'
       if: ${{ runner.os == 'Linux' && steps.apt-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       with:
         path: /tmp/apt-cache.tar
         key: ${{ runner.os }}-apt-${{ steps.prep.outputs.apt_hash }}
@@ -193,7 +193,7 @@ runs:
 
     - name: 'Save plugin cache'
       if: ${{ runner.os != 'Linux' && steps.onsdriver-cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       with:
         path: '.onsdriver-cache'
         key: ${{ runner.os }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
