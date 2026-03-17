@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 'Setup onsdriver'
         uses: ./
@@ -36,7 +36,7 @@ jobs:
           7z a test-${{ runner.os }}.zip logs/ screenshots/
 
       - name: 'Upload screenshots and logs'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-${{ runner.os }}
           path: test-${{ runner.os }}.zip
