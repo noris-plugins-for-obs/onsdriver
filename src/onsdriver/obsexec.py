@@ -146,7 +146,7 @@ class OBSExec:
             timeout = 60
             wait = 0.1
         else:
-            timeout = 10
+            timeout = 30
             wait = 0.1
         for _ in util.retry(timeout=timeout, each_wait=wait, error_msg='Checking startup by log'):
             if self._obs_started():
