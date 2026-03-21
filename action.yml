@@ -81,6 +81,9 @@ runs:
           done
           sudo add-apt-repository -y ppa:obsproject/obs-studio
           sudo add-apt-repository -y ppa:norihiro/plugins-for-obs-studio
+          if ${{ inputs.include-prerelease }}; then
+            sudo add-apt-repository -y ppa:norihiro/plugins-for-obs-studio-unstable
+          fi
           sudo apt update
           cat '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt' |\
             sudo xargs apt info > /tmp/onsdriver-apt-info.out
