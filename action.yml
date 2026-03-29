@@ -111,6 +111,7 @@ runs:
           python -m onsdriver.firsttime "${plugins_args[@]}" --info-only \
             ${{ (inputs.include-prerelease == true || inputs.include-prerelease == 'true') && '--include-prerelease' || '' }} \
             > onsdriver-plugins-info.txt
+            cat onsdriver-obs-info.txt onsdriver-plugins-info.txt
           hash=$(cat onsdriver-obs-info.txt onsdriver-plugins-info.txt | sha256sum - | cut -f1 -d' ')
           echo "onsdriver_hash=$hash" >> $GITHUB_OUTPUT
           echo "obs_version=$obs_version" >> $GITHUB_OUTPUT
