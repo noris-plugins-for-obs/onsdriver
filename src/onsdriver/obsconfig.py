@@ -14,6 +14,7 @@ import copy
 import onsdriver.platform
 
 _OBSWS_CONFIG_PATH = '/plugin_config/obs-websocket/config.json'
+_UI_WS_AUTOMATION_ENABLE_PATH = '/plugin_config/ui-ws-automation/enable.json'
 
 def _get_config_dir():
     if onsdriver.platform.os_is_linux():
@@ -225,6 +226,13 @@ class OBSConfig:
             os.makedirs(os.path.dirname(self.path + _OBSWS_CONFIG_PATH), mode=0o755, exist_ok=True)
             with open(self.path + _OBSWS_CONFIG_PATH, 'w', encoding='utf-8') as fw:
                 json.dump(config_obsws, fw)
+
+    def enable_ui_ws_automation(self, enable=True):
+        'Enable ui-ws-automation plugin'
+        enable_file_path = self.path + _UI_WS_AUTOMATION_ENABLE_PATH
+        os.makedirs(os.path.dirname(enable_file_path), mode=0o755, exist_ok=True)
+        with open(enable_file_path, 'w', encoding='utf-8') as fw:
+            json.dump({'enable': bool(enable)}, fw)
 
     def remove_files(self):
         'Remove configuration files'

@@ -93,6 +93,7 @@ class OBSExec:
 
         if enable_obsws:
             config.enable_obsws()
+            config.enable_ui_ws_automation()
         if run:
             self.run()
 
