@@ -50,13 +50,22 @@ def _select_asset_from_gh(
         file_re = re.compile(file_re)
 
     if version_specs or include_prerelease:
-        release_url = _latest_release_with_version(
+        release_urls = _latest_release_with_version(
                 repo_name=repo_name, version_specs=version_specs,
                 include_prerelease=include_prerelease
         )
-    else:
-        release_url = _get_release_url(repo_name)
+        for release_url in release_urls:
+            last_error = None
+            try:
+                return _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb)
+            except Exception as e: # pylint: disable=broad-exception-caught
+                last_error = e
+        raise last_error
 
+    release_url = _get_release_url(repo_name)
+    return _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb)
+
+def _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb):
     try:
         with _gh_urlopen(release_url) as res:
             latest = json.loads(res.read().decode())
@@ -80,6 +89,8 @@ def _select_asset_from_gh(
     if len(aa) > 1:
         sys.stderr.write('Info: Multiple candidates:\n ' +
                          '\n '.join([a["name"] for a in aa]) + '\n')
+    elif len(aa) < 1:
+        raise ValueError(f'No suitable asset from {repo_name}')
 
     return aa[-1], latest
 
@@ -160,8 +171,9 @@ def _latest_release_with_version(repo_name, version_specs, include_prerelease):
     if isinstance(version_specs, str):
         version_specs = SpecifierSet(version_specs)
     for rel in _list_releases(repo_name, include_prerelease=include_prerelease):
-        if not version_specs or version_specs.contains(rel['tag_name']):
-            return rel['url']
+        if not version_specs or \
+                version_specs.contains(rel['tag_name'], prereleases=include_prerelease):
+            yield rel['url']
     raise ValueError(f'No tags matching {version_specs} in {repo_name}')
 
 def download_asset_with_file_re(
