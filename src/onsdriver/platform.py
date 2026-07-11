@@ -7,8 +7,10 @@ import sys
 OS_LINUX = 'linux'
 OS_MACOS = 'darwin'
 OS_WINDOWS = 'win32'
-ARCH_ARM64 = 'arm64'
-ARCH_X86_64 = 'x86_64'
+MACOS_ARCH_ARM64 = 'arm64'
+MACOS_ARCH_X86_64 = 'x86_64'
+WIN_ARCH_ARM64 = 'ARM64'
+WIN_ARCH_X64 = 'AMD64'
 
 def _from_env(env_name, accepted_values):
     if env_name not in os.environ:
@@ -45,7 +47,12 @@ def arch():
 
     :return:  Architecture type
     '''
-    env_arch = _from_env('ONSDRIVER_ARCH', (ARCH_ARM64, ARCH_X86_64))
+    if os_is_macos():
+        env_arch = _from_env('ONSDRIVER_ARCH', (MACOS_ARCH_ARM64, MACOS_ARCH_X86_64))
+    elif os_is_windows():
+        env_arch = _from_env('ONSDRIVER_ARCH', (WIN_ARCH_X64, WIN_ARCH_ARM64))
+    else:
+        env_arch = None
     if env_arch:
         return env_arch
     return platform.machine()

@@ -37,14 +37,20 @@ def install_obs(
     if not selector_re:
         if onsdriver.platform.os_is_macos():
             a = onsdriver.platform.arch()
-            if a == onsdriver.platform.ARCH_ARM64:
+            if a == onsdriver.platform.MACOS_ARCH_ARM64:
                 selector_re = r'^(OBS-Studio|obs-studio)-.*-(macOS|macos)-(Apple|arm64).dmg$'
-            elif a == onsdriver.platform.ARCH_X86_64:
+            elif a == onsdriver.platform.MACOS_ARCH_X86_64:
                 selector_re = r'^(OBS-Studio|obs-studio)-.*-(macOS|macos)-(Intel|x86_64).dmg$'
             else:
                 raise NotImplementedError(f'Unknown architecture: {a}')
         elif onsdriver.platform.os_is_windows():
-            selector_re = r'^OBS-Studio-.*-Windows-x64.zip$'
+            a = onsdriver.platform.arch().upper()
+            if a == 'AMD64':
+                selector_re = r'^OBS-Studio-.*-Windows-x64.zip$'
+            elif a == 'ARM64':
+                selector_re = r'^OBS-Studio-.*-Windows-arm64.zip$'
+            else:
+                raise NotImplementedError(f'Unknown architecture: {a}')
         else:
             raise NotImplementedError(f'Not supported platform: {onsdriver.platform.os_name()}')
 

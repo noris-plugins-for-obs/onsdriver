@@ -26,9 +26,9 @@ if onsdriver.platform.os_is_macos():
         file_re = r'.*macos.*\.zip'
         if 'text-pthread' in repo_name:
             a = onsdriver.platform.arch()
-            if a == onsdriver.platform.ARCH_ARM64:
+            if a == onsdriver.platform.MACOS_ARCH_ARM64:
                 file_re = r'.*macos.*(arm64|universal)\.zip'
-            elif a == onsdriver.platform.ARCH_X86_64:
+            elif a == onsdriver.platform.MACOS_ARCH_X86_64:
                 file_re = r'.*macos.*(x86_64|universal)\.zip'
             else:
                 raise NotImplementedError(f'Unknown architecture: {a}')
@@ -49,6 +49,24 @@ elif onsdriver.platform.os_is_windows():
     import onsdriver._plugin_install_win
 
     def _download_plugin(repo_name, **kwargs):
+        filter_orig = kwargs['filter_cb'] if 'filter_cb' in kwargs else None
+        def _filter_arm64(assets):
+            assets = [x for x in assets if 'arm64' in x['name']]
+            if filter_orig:
+                assets = filter_orig(assets) # pylint: disable=not-callable
+            return assets
+        def _filter_x64(assets):
+            assets = [x for x in assets if not 'arm64' in x['name']]
+            if filter_orig:
+                assets = filter_orig(assets) # pylint: disable=not-callable
+            return assets
+        a = onsdriver.platform.arch().upper()
+        if a == 'AMD64':
+            kwargs['filter_cb'] = _filter_x64
+        elif a == 'ARM64':
+            kwargs['filter_cb'] = _filter_arm64
+        else:
+            raise NotImplementedError(f'Unknown architecture: {a}')
         return download_asset_with_file_re(repo_name, r'.*[Ww]indows.*\.zip', **kwargs)
 
     def _install_plugin(filename):
