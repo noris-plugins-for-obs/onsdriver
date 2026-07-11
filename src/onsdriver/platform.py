@@ -17,7 +17,8 @@ def _from_env(env_name, accepted_values):
         return None
     v = os.environ[env_name]
     if v not in accepted_values:
-        raise ValueError(f'Invalid {env_name} value: {v}')
+        raise ValueError(f'Invalid {env_name} value: {v} '
+                         f'accepted values: {" ".join(accepted_values)}')
     return v
 
 def os_name():
