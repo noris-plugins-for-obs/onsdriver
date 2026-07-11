@@ -67,6 +67,14 @@ elif onsdriver.platform.os_is_windows():
             kwargs['filter_cb'] = _filter_arm64
         else:
             raise NotImplementedError(f'Unknown architecture: {a}')
+        if 'ui-ws-automation' in repo_name:
+            sys.stderr.write(f'Info: {repo_name}: Allowing pre-release for ARM64\n')
+            kwargs['include_prerelease'] = True
+            kwargs['version_specs'] = '>= 0.2.0'
+        if 'shutdown-plugin' in repo_name:
+            sys.stderr.write(f'Info: {repo_name}: Allowing pre-release for ARM64\n')
+            kwargs['include_prerelease'] = True
+            kwargs['version_specs'] = '>= 0.3.0'
         return download_asset_with_file_re(repo_name, r'.*[Ww]indows.*\.zip', **kwargs)
 
     def _install_plugin(filename):
