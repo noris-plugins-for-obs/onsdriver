@@ -104,35 +104,36 @@ def _version(s):
             return int(s)
         except ValueError:
             return 0
-    return tuple(map(_safe_int, s.split('.')))
+    v = s.split('.')
+    while len(v) < 3:
+        v.append(0)
+    return tuple(map(_safe_int, v))
 
-class _FilterPlugins:
+class FilterPluginsByOBSVer:
+    'Filter plugin asset by target OBS version'
     # pylint: disable=too-few-public-methods
     def __init__(self, obs=None):
-        self.obs = obs
+        if obs:
+            self.limit_obs_v = _version(obs)
+        else:
+            self.limit_obs_v = None
 
     def filter(self, assets):
         'Filter the list of assets'
         re_obs = re.compile('[_-]obs([1-9][0-9.]*)[^0-9]')
-        best_obs_v = None
-        best_obs_ver = None
-        limit_obs_v = _version(self.obs) if self.obs else None
         for a in assets:
             name = a['name']
             m = re_obs.search(name)
             if m:
                 obs_ver = m[1]
-                a['obs_ver'] = obs_ver
-                obs_v = _version(obs_ver)
-                if not limit_obs_v or obs_v <= limit_obs_v:
-                    if not best_obs_v or obs_v > best_obs_v:
-                        best_obs_v = obs_v
-                        best_obs_ver = obs_ver
+                a['obs_ver'] = _version(obs_ver)
+            else:
+                a['obs_ver'] = (0, )
 
-        if not best_obs_v:
-            return assets
+        if self.limit_obs_v:
+            assets = [a for a in assets if a['obs_ver'] <= self.limit_obs_v]
 
-        return [a for a in assets if 'obs_ver' not in a or a['obs_ver'] == best_obs_ver]
+        return sorted(assets, key=lambda a: a['obs_ver'])
 
 def download_plugin(repo_name, info_only=False, obs=None, include_prerelease=False):
     '''Download plugin from github.com
@@ -142,7 +143,7 @@ def download_plugin(repo_name, info_only=False, obs=None, include_prerelease=Fal
     :param include_prerelease:  Find the latest including release-candidate versions.
     :return:           Path to the downloaded file.
     '''
-    f = _FilterPlugins(obs=obs)
+    f = FilterPluginsByOBSVer(obs=obs)
     return _download_plugin(
             repo_name, info_only=info_only, filter_cb=f.filter,
             include_prerelease=include_prerelease)
