@@ -25,6 +25,7 @@ _WAIVED_ERRORS_RE_LIST = (
     r'error: Crash sentinel location .* unable to create directory', # first time on Windows
     r'error: .* libnvidia-encode.so.[1-9]: cannot open shared object file',
     r'error: Could not create dbus connection:.*', # Ubuntu 24.04 on docker
+    r'error: Tried to call obs_frontend_is_safe_mode_enabled with no callbacks', # 33.0.0 on macOS
 )
 
 _WAIVED_ERRORS_RE = re.compile('(' + '|'.join(_WAIVED_ERRORS_RE_LIST) + ')')
