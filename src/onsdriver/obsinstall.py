@@ -46,7 +46,7 @@ def install_obs(
         elif onsdriver.platform.os_is_windows():
             a = onsdriver.platform.arch().upper()
             if a == 'AMD64':
-                selector_re = r'^OBS-Studio-.*-Windows-x64.zip$'
+                selector_re = r'^OBS-Studio-.*-(Windows|Windows-x64).zip$'
             elif a == 'ARM64':
                 selector_re = r'^OBS-Studio-.*-Windows-arm64.zip$'
             else:
