@@ -16,6 +16,9 @@ from onsdriver import util
 
 _DOWNLOAD_CACHE_DIR = '.onsdriver-cache'
 
+class _NoMatchAssertsError(ValueError):
+    pass
+
 def _gh_urlopen(url, params=None):
     if params:
         url = url + '?' + urllib.parse.urlencode(params)
@@ -49,21 +52,25 @@ def _select_asset_from_gh(
     if isinstance(file_re, str):
         file_re = re.compile(file_re)
 
-    if version_specs or include_prerelease:
-        release_urls = _latest_release_with_version(
-                repo_name=repo_name, version_specs=version_specs,
-                include_prerelease=include_prerelease
-        )
-        for release_url in release_urls:
-            last_error = None
-            try:
-                return _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb)
-            except Exception as e: # pylint: disable=broad-exception-caught
-                last_error = e
-        raise last_error
+    if not version_specs and not include_prerelease:
+        try:
+            release_url = _get_release_url(repo_name)
+            return _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb)
+        except _NoMatchAssertsError as e:
+            sys.stderr.write(f'Warning: No match assets in the latest release: {str(e)}\n')
 
-    release_url = _get_release_url(repo_name)
-    return _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb)
+    release_urls = _latest_release_with_version(
+            repo_name=repo_name, version_specs=version_specs,
+            include_prerelease=include_prerelease
+    )
+    for release_url in release_urls:
+        last_error = None
+        try:
+            return _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb)
+        except Exception as e: # pylint: disable=broad-exception-caught
+            last_error = e
+    raise last_error
+
 
 def _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb):
     try:
@@ -80,7 +87,7 @@ def _select_asset_from_gh_internal(release_url, repo_name, file_re, filter_cb):
             aa.append(a)
     if not aa:
         names = [a["name"] for a in latest["assets"]]
-        raise ValueError(f'No matching assets, available {" ".join(names)}')
+        raise _NoMatchAssertsError(' '.join(names))
 
     aa = sorted(aa, key=lambda a: a['name'])
     if filter_cb:
