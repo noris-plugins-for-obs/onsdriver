@@ -10,6 +10,7 @@ from onsdriver import obsexec
 
 _RE_TYPE_LEGACY = re.compile(r'obs-plugins/[0-9]*bit/[^/]*\.dll')
 _RE_TYPE_PROGRAMDATA = re.compile(r'[^/]*/bin/[0-9]*bit/[^/]*\.dll')
+_RE_TYPE_PROGRAMDATA_33 = re.compile(r'([^/]*)/([^/]*)\.dll$')
 
 _INSTALLED_WINDOWS_FILES = set()
 
@@ -25,6 +26,9 @@ def _is_legacy_type(z):
 def _is_programdata_type(z):
     for f in z.namelist():
         if _RE_TYPE_PROGRAMDATA.match(f):
+            return True
+        m = _RE_TYPE_PROGRAMDATA_33.match(f)
+        if m and m[1] == m[2]:
             return True
     return False
 
