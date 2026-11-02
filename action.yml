@@ -84,6 +84,12 @@ runs:
           if ${{ inputs.include-prerelease }}; then
             sudo add-apt-repository -y ppa:norihiro/plugins-for-obs-studio-unstable
           fi
+          if grep 'Ubuntu 26.04' /etc/lsb-release; then
+            for f in /etc/apt/sources.list.d/*.sources; do
+              grep ppa.launchpadcontent.net "$f" || continue
+              sudo sed -i '/^Components:/a Architectures: amd64' "$f"
+            done
+          fi
           sudo apt update
           cat '${{ github.action_path }}/.github/scripts/ubuntu-apt-packages.txt' |\
             sudo xargs apt info > /tmp/onsdriver-apt-info.out
