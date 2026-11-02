@@ -123,6 +123,7 @@ runs:
           echo "obs_version=$obs_version" >> $GITHUB_OUTPUT
           rm -f onsdriver-obs-info.txt onsdriver-plugins-info.txt
         fi
+        echo "cache_key=$ImageOS" >> $GITHUB_OUTPUT
 
     - name: 'Restore ONS Driver cache'
       if: ${{ runner.os != 'Linux' }}
@@ -130,8 +131,8 @@ runs:
       uses: actions/cache/restore@v5
       with:
         path: '.onsdriver-cache'
-        key: ${{ runner.os }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
-        restore-keys: ${{ runner.os }}-onsdriver-
+        key: ${{ steps.prep.outputs.cache_key }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
+        restore-keys: ${{ steps.prep.outputs.cache_key }}-onsdriver-
 
     - name: 'Install OBS Studio'
       if: ${{ runner.os != 'Linux' }}
@@ -149,8 +150,8 @@ runs:
       uses: actions/cache/restore@v5
       with:
         path: /tmp/apt-cache.tar
-        key: ${{ runner.os }}-apt-${{ steps.prep.outputs.apt_hash }}
-        restore-keys: ${{ runner.os }}-apt-
+        key: ${{ steps.prep.outputs.cache_key }}-apt-${{ steps.prep.outputs.apt_hash }}
+        restore-keys: ${{ steps.prep.outputs.cache_key }}-apt-
 
     - name: 'Install OBS Studio and plugins'
       if: ${{ runner.os == 'Linux' }}
@@ -176,7 +177,7 @@ runs:
       uses: actions/cache/save@v5
       with:
         path: /tmp/apt-cache.tar
-        key: ${{ runner.os }}-apt-${{ steps.prep.outputs.apt_hash }}
+        key: ${{ steps.prep.outputs.cache_key }}-apt-${{ steps.prep.outputs.apt_hash }}
 
     - name: 'Run the first-time wizard'
       env:
@@ -216,4 +217,4 @@ runs:
       uses: actions/cache/save@v5
       with:
         path: '.onsdriver-cache'
-        key: ${{ runner.os }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
+        key: ${{ steps.prep.outputs.cache_key }}-onsdriver-${{ steps.prep.outputs.onsdriver_hash }}
